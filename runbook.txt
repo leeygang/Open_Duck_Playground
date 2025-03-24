@@ -1,0 +1,10 @@
+uv run playground/open_duck_mini_v2/mujoco_infer.py -o latest_ONNX.onnx
+
+
+use the arrow keys 🙂
++ "a" and "e" to rotate
+
+ctrl + arrow to move
+
+you right click, drag and let go
+to apply a momentary force
