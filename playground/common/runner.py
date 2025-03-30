@@ -40,6 +40,8 @@ class BaseRunner(ABC):
         self.action_size = None
         self.obs_size = None
         self.num_timesteps = args.num_timesteps
+        self.restore_checkpoint_path = None
+        
         # CACHE STUFF
         os.makedirs(".tmp", exist_ok=True)
         jax.config.update("jax_compilation_cache_dir", ".tmp/jax_cache")
@@ -106,6 +108,7 @@ class BaseRunner(ABC):
             randomization_fn=self.randomizer,
             progress_fn=self.progress_callback,
             policy_params_fn=self.policy_params_fn,
+            restore_checkpoint_path=self.restore_checkpoint_path,
         )
 
         _, params, _ = train_fn(

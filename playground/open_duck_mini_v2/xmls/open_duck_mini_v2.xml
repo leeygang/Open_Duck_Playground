@@ -45,7 +45,8 @@
     <default class="sts3215">
       <geom contype="0" conaffinity="0"/>
       <joint damping="0.56" frictionloss="0.068" armature="0.027"/>
-      <position kp="17.12" kv="0.0" forcerange="-3.23 3.23"/>
+      <!-- <position kp="17.12" kv="0.0" forcerange="-3.23 3.23"/> -->
+      <position kp="13.37" kv="0.0" forcerange="-3.23 3.23"/>
     </default>
     <default class="backlash">
       <!-- +/- 0.5° of backlash -->
@@ -56,7 +57,7 @@
   <worldbody>
     <body name="base" pos="0 0 0.22">
       <freejoint name="floating_base"/>
-            <site name="imu" pos="-0.08 -0.0 0.05"/>
+      <site name="imu" pos="-0.08 -0.0 0.05"/>
       <!-- Link trunk_assembly -->
       <body name="trunk_assembly" pos="0 0 0.0" quat="1 0 0 0" childclass="open_duck_mini_v2">
         <inertial pos="-0.0483259 -9.97823e-05 0.0384971" mass="0.698526"
@@ -108,7 +109,8 @@
         <!-- Frame trunk -->
         <site group="0" name="trunk" pos="-0.024 -2.41127e-16 0.0881909" quat="1 -2.77556e-17 -0 -0"/>
         <!-- Frame imu -->
-        <!-- <site group="0" name="imu" pos="-0.08711 1.249e-16 0.0422909" quat="1 -7.03105e-17 -2.77556e-17 -3.14419e-16"/> -->
+        <!-- <site group="0" name="imu" pos="-0.08711 1.249e-16 0.0422909" quat="1 -7.03105e-17 -2.77556e-17
+        -3.14419e-16"/> -->
         <!-- Link hip_roll_assembly -->
         <body name="hip_roll_assembly" pos="-0.019 0.035 0.0459409" quat="1 -1.17663e-16 -1.09357e-14 2.77556e-17">
           <!-- Joint from trunk_assembly to hip_roll_assembly -->

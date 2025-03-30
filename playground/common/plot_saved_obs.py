@@ -172,8 +172,24 @@ obses_names = [
     "last_last_last_action_" + str(joints_order[11]),
     "last_last_last_action_" + str(joints_order[12]),
     "last_last_last_action_" + str(joints_order[13]),
+    "motor_targets_" + str(joints_order[0]),
+    "motor_targets_" + str(joints_order[1]),
+    "motor_targets_" + str(joints_order[2]),
+    "motor_targets_" + str(joints_order[3]),
+    "motor_targets_" + str(joints_order[4]),
+    "motor_targets_" + str(joints_order[5]),
+    "motor_targets_" + str(joints_order[6]),
+    "motor_targets_" + str(joints_order[7]),
+    "motor_targets_" + str(joints_order[8]),
+    "motor_targets_" + str(joints_order[9]),
+    "motor_targets_" + str(joints_order[10]),
+    "motor_targets_" + str(joints_order[11]),
+    "motor_targets_" + str(joints_order[12]),
+    "motor_targets_" + str(joints_order[13]),
     "contact left",
     "contact right",
+    "imitation_phase 1",
+    "imitation_phase 2"
     # ref (ignored)
 ]
 # print(len(obses_names))
@@ -182,7 +198,7 @@ obses_names = [
 
 # obses = [[56 obs at time 0], [56 obs at time 1], ...]
 
-nb_obs = len(obses[0][:-59])
+nb_obs = len(obses[0])
 print(nb_obs)
 nb_rows = int(np.sqrt(nb_obs))
 nb_cols = int(np.ceil(nb_obs / nb_rows))

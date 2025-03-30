@@ -126,7 +126,7 @@ class MjInfer:
 
         self.NECK_PITCH_RANGE = [-0.34, 1.1]
         self.HEAD_PITCH_RANGE = [-0.78, 0.78]
-        self.HEAD_YAW_RANGE = [-2.7, 2.7]
+        self.HEAD_YAW_RANGE = [-1.5, 1.5]
         self.HEAD_ROLL_RANGE = [-0.5, 0.5]
 
         self.last_action = np.zeros(NUM_DOFS)
@@ -170,6 +170,7 @@ class MjInfer:
         )
 
         self.imitation_i = 0
+        self.imitation_phase = np.array([0, 0])
         self.saved_obs = []
 
         self.max_motor_velocity = 5.24  # rad/s
@@ -344,8 +345,8 @@ class MjInfer:
 
         contacts = self.get_feet_contacts(data)
 
-        if not self.standing:
-            ref = self.PRM.get_reference_motion(*command[:3], self.imitation_i)
+        # if not self.standing:
+        # ref = self.PRM.get_reference_motion(*command[:3], self.imitation_i)
 
         obs = np.concatenate(
             [
@@ -360,7 +361,9 @@ class MjInfer:
                 self.last_last_last_action,
                 self.motor_targets,
                 contacts,
-                ref if not self.standing else np.array([]),
+                # ref if not self.standing else np.array([]),
+                # [self.imitation_i]
+                self.imitation_phase,
             ]
         )
 
@@ -437,6 +440,12 @@ class MjInfer:
                             self.imitation_i = (
                                 self.imitation_i % self.PRM.nb_steps_in_period
                             )
+                            self.imitation_phase = np.array(
+                                [
+                                    np.cos(self.imitation_i / self.PRM.nb_steps_in_period * 2 * np.pi),
+                                    np.sin(self.imitation_i / self.PRM.nb_steps_in_period * 2 * np.pi),
+                                ]
+                            )
                         obs = self.get_obs(
                             self.data,
                             self.commands,
@@ -451,17 +460,25 @@ class MjInfer:
                         self.last_last_action = self.last_action.copy()
                         self.last_action = action.copy()
 
-                        self.motor_targets = self.default_actuator + action * self.action_scale
+                        self.motor_targets = (
+                            self.default_actuator + action * self.action_scale
+                        )
 
                         if USE_MOTOR_SPEED_LIMITS:
                             self.motor_targets = np.clip(
                                 self.motor_targets,
-                                self.prev_motor_targets - self.max_motor_velocity * (self.sim_dt * self.decimation),
-                                self.prev_motor_targets + self.max_motor_velocity * (self.sim_dt * self.decimation),
+                                self.prev_motor_targets
+                                - self.max_motor_velocity
+                                * (self.sim_dt * self.decimation),
+                                self.prev_motor_targets
+                                + self.max_motor_velocity
+                                * (self.sim_dt * self.decimation),
                             )
 
                             self.prev_motor_targets = self.motor_targets.copy()
 
+                        # head_targets = self.commands[3:]
+                        # self.motor_targets[5:9] = head_targets
                         self.data.ctrl = self.motor_targets.copy()
 
                     viewer.sync()
