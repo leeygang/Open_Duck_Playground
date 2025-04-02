@@ -19,3 +19,5 @@ dependencies = [
 ]
 [build-system]
 requires = ["setuptools"]
+[tool.setuptools]
+packages = ["playground"]
