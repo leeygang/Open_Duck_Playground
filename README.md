@@ -35,7 +35,7 @@ Infer mujoco
 (for now this is specific to open_duck_mini_v2)
 
 ```bash
-uv run playground/open_duck_mini_v2/mujoco_infer.py -o <path_to_.onnx> (-k)
+uv run playground/open_duck_mini_v2/mujoco_infer.py -o <path_to_.onnx>
 ```
 
 # Documentation
@@ -92,11 +92,7 @@ Inspired from https://github.com/kscalelabs/mujoco_playground
 
 
 ## Current win
-- train for 300 000 000 steps
-- train with backlash (takes longer)
-- Flat terrain
-- Infer on the robot with kp = 22 instead of 32
 
-## TODO
-- Understand why head does not move very much
-- low pass filter ? 37.5 hz ? 
+```bash
+uv run playground/open_duck_mini_v2/runner.py --task flat_terrain_backlash --num_timesteps 300000000
+```
