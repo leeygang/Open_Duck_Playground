@@ -8,3 +8,20 @@ ctrl + arrow to move
 
 you right click, drag and let go
 to apply a momentary force
+
+
+#Debug training, Runner
+1. sync venv
+uv sync
+
+2. activate venv
+source ./venv/bin/activate
+
+3. run runner
+
+in vscode: 
+Ctrl+Shift+P to pick venv folder
+  Python: Select Interpreter to select python binary.
+
+
+

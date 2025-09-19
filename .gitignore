@@ -9,3 +9,5 @@ checkpoints/
 .tmp/
 *.onnx
 *.TXT
+.venv/
+.vscode/

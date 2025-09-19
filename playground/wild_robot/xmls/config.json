@@ -1,0 +1,21 @@
+{
+    // NEED TO WRAP all in a body named "base" and add site 
+    // <site name="imu" pos="-0.08 -0.0 0.05"/>
+    // and comment the default kp frictionloss etc
+    "documentId": "ba106cac193c0e2253e1958f",
+    "outputFormat": "mujoco",
+    "assemblyName": "TheWildRobot",
+    "robot_name": "wild_robot",
+    "output_filename": "wild_robot",
+    // Simplify STL meshes (default: false)
+    "simplify_stls": true,
+    "joint_properties": {
+        "default": {
+            "class": "lobotServo"
+        }
+    },
+    "additional_xml": [
+        "sensors.xml",
+        "joints_properties.xml"
+    ]
+}

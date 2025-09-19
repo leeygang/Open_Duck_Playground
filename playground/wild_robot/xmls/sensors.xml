@@ -1,0 +1,9 @@
+<sensor>
+    <gyro site="imu" name="gyro"/>
+    <accelerometer site="imu" name="acc"/>
+    <framequat objtype="site" objname="imu" name="orientation"/>
+    <gyro site="right_leg_imu" name="right_leg_gyro"/>
+    <accelerometer site="right_leg_imu" name="right_leg_acc"/>
+    <gyro site="left_leg_imu" name="left_leg_gyro"/>
+    <accelerometer site="left_leg_imu" name="left_leg_acc"/>
+</sensor>
