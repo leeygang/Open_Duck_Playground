@@ -263,14 +263,7 @@ class OpenDuckMiniV2Env(mjx_env.MjxEnv):
         """Return the gyroscope readings in the local frame."""
         return mjx_env.get_sensor_data(self.mj_model, data, constants.GYRO_SENSOR)
 
-    def get_feet_pos(self, data: mjx.Data) -> jax.Array:
-        """Return the position of the feet in the world frame."""
-        return jp.vstack(
-            [
-                mjx_env.get_sensor_data(self.mj_model, data, sensor_name)
-                for sensor_name in constants.FEET_POS_SENSOR
-            ]
-        )
+
 
     # Accessors.
 

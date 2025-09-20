@@ -34,56 +34,43 @@ def task_to_xml(task_name: str) -> epath.Path:
     }[task_name]
 
 
-FEET_SITES = [
-    "left_foot",
-    "right_foot",
-]
-
 LEFT_FEET_GEOMS = [
-    "left_foot_bottom_tpu",
+    "left_foot_btm_front",
+    "left_foot_btm_back",
 ]
 
 RIGHT_FEET_GEOMS = [
-    "right_foot_bottom_tpu",
+    "right_foot_btm_front",
+    "right_foot_btm_back",
 ]
 
-HIP_JOINT_NAMES = [
-    "left_hip_yaw",
-    "left_hip_roll",
-    "left_hip_pitch",
-    "right_hip_yaw",
-    "right_hip_roll",
-    "right_hip_pitch",
-]
-
-KNEE_JOINT_NAMES = [
-    "left_knee",
-    "right_knee",
-]
 
 # There should be a way to get that from the mjModel...
 JOINTS_ORDER_NO_HEAD = [
-    "left_hip_yaw",
-    "left_hip_roll",
-    "left_hip_pitch",
+    "waist",
+    "left_waist_hip",
+    "left_hip",
     "left_knee",
     "left_ankle",
-    "right_hip_yaw",
-    "right_hip_roll",
-    "right_hip_pitch",
+    "left_foot",
+    "right_waist_hip",
+    "right_hip",
     "right_knee",
     "right_ankle",
+    "right_foot",
 ]
+
 
 FEET_GEOMS = LEFT_FEET_GEOMS + RIGHT_FEET_GEOMS
 
-FEET_POS_SENSOR = [f"{site}_pos" for site in FEET_SITES]
 
-ROOT_BODY = "trunk_assembly"
+ROOT_BODY = "waist"
 
 GRAVITY_SENSOR = "upvector"
+ACCELEROMETER_SENSOR = "accelerometer"
+GYRO_SENSOR = "gyro"
+# debug
 GLOBAL_LINVEL_SENSOR = "global_linvel"
 GLOBAL_ANGVEL_SENSOR = "global_angvel"
 LOCAL_LINVEL_SENSOR = "local_linvel"
-ACCELEROMETER_SENSOR = "accelerometer"
-GYRO_SENSOR = "gyro"
+

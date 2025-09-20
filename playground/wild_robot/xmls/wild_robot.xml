@@ -20,6 +20,7 @@
     <gyro site="imu" name="gyro"/>
     <accelerometer site="imu" name="acc"/>
     <framequat objtype="site" objname="imu" name="orientation"/>
+    <framezaxis objtype="site" objname="imu" name="upvector"/>
     <gyro site="right_leg_imu" name="right_leg_gyro"/>
     <accelerometer site="right_leg_imu" name="right_leg_acc"/>
     <gyro site="left_leg_imu" name="left_leg_gyro"/>
@@ -246,7 +247,7 @@
                   <geom type="mesh" class="collision" pos="-0.0596436 -0.0062757 0.0510108" quat="0.00074741 -1 3.08837e-07 0.00041321" mesh="htd_45h_1circle" material="htd_45h_1circle_material"/>
                   <!-- Part btm_btm_back -->
                   <geom type="mesh" class="visual" pos="-0.0125253 0.0011852 0.0255946" quat="0.499502 0.500498 0.499915 0.500085" mesh="btm_btm_back" material="btm_btm_back_material"/>
-                  <geom type="mesh" class="collision" pos="-0.0125253 0.0011852 0.0255946" quat="0.499502 0.500498 0.499915 0.500085" mesh="btm_btm_back" material="btm_btm_back_material"/>
+                  <geom type="mesh" class="collision" pos="-0.0125253 0.0011852 0.0255946" quat="0.499502 0.500498 0.499915 0.500085" mesh="btm_btm_back" material="btm_btm_back_material" name="left_foot_btm_back"/>
                   <!-- Part foot_side -->
                   <geom type="mesh" class="visual" pos="-0.0128254 0.000185294 0.0255108" quat="0.499502 0.500498 0.499915 0.500085" mesh="foot_side" material="foot_side_material"/>
                   <geom type="mesh" class="collision" pos="-0.0128254 0.000185294 0.0255108" quat="0.499502 0.500498 0.499915 0.500085" mesh="foot_side" material="foot_side_material"/>
@@ -258,7 +259,7 @@
                   <geom type="mesh" class="collision" pos="-0.0128254 0.000185294 0.0255108" quat="0.499502 0.500498 0.499915 0.500085" mesh="foot_main" material="foot_main_material"/>
                   <!-- Part btm_btm_front -->
                   <geom type="mesh" class="visual" pos="-0.0125255 0.00118539 0.0254289" quat="0.499502 0.500498 0.499915 0.500085" mesh="btm_btm_front" material="btm_btm_front_material"/>
-                  <geom type="mesh" class="collision" pos="-0.0125255 0.00118539 0.0254289" quat="0.499502 0.500498 0.499915 0.500085" mesh="btm_btm_front" material="btm_btm_front_material"/>
+                  <geom type="mesh" class="collision" pos="-0.0125255 0.00118539 0.0254289" quat="0.499502 0.500498 0.499915 0.500085" mesh="btm_btm_front" material="btm_btm_front_material" name="left_foot_btm_ftont"/>
                   <!-- Part btm_top_back -->
                   <geom type="mesh" class="visual" pos="-0.0126253 0.0011852 0.0255947" quat="0.499502 0.500498 0.499915 0.500085" mesh="btm_top_back" material="btm_top_back_material"/>
                   <geom type="mesh" class="collision" pos="-0.0126253 0.0011852 0.0255947" quat="0.499502 0.500498 0.499915 0.500085" mesh="btm_top_back" material="btm_top_back_material"/>
@@ -363,7 +364,7 @@
                   <geom type="mesh" class="collision" pos="-0.0128256 0.159815 -0.0265243" quat="0.499915 0.500085 0.499502 0.500498" mesh="foot_main_right" material="foot_main_right_material"/>
                   <!-- Part btm_btm_front_2 -->
                   <geom type="mesh" class="visual" pos="-0.0125255 -0.00118539 -0.0266289" quat="0.499915 0.500085 0.499502 0.500498" mesh="btm_btm_front" material="btm_btm_front_material"/>
-                  <geom type="mesh" class="collision" pos="-0.0125255 -0.00118539 -0.0266289" quat="0.499915 0.500085 0.499502 0.500498" mesh="btm_btm_front" material="btm_btm_front_material"/>
+                  <geom type="mesh" class="collision" pos="-0.0125255 -0.00118539 -0.0266289" quat="0.499915 0.500085 0.499502 0.500498" mesh="btm_btm_front" material="btm_btm_front_material" name="right_foot_btm_front"/>
                   <!-- Part foot_side_right -->
                   <geom type="mesh" class="visual" pos="-0.0128256 0.159815 -0.0265243" quat="0.499915 0.500085 0.499502 0.500498" mesh="foot_side_right" material="foot_side_right_material"/>
                   <geom type="mesh" class="collision" pos="-0.0128256 0.159815 -0.0265243" quat="0.499915 0.500085 0.499502 0.500498" mesh="foot_side_right" material="foot_side_right_material"/>
@@ -372,7 +373,7 @@
                   <geom type="mesh" class="collision" pos="-0.0128254 -0.000185294 -0.0267108" quat="0.500498 -0.499502 0.500085 -0.499915" mesh="btm_servo_support" material="btm_servo_support_material"/>
                   <!-- Part btm_btm_back_2 -->
                   <geom type="mesh" class="visual" pos="-0.0105255 -0.00118539 -0.0266273" quat="0.499915 0.500085 0.499502 0.500498" mesh="btm_btm_back" material="btm_btm_back_material"/>
-                  <geom type="mesh" class="collision" pos="-0.0105255 -0.00118539 -0.0266273" quat="0.499915 0.500085 0.499502 0.500498" mesh="btm_btm_back" material="btm_btm_back_material"/>
+                  <geom type="mesh" class="collision" pos="-0.0105255 -0.00118539 -0.0266273" quat="0.499915 0.500085 0.499502 0.500498" mesh="btm_btm_back" material="btm_btm_back_material" name="right_foot_btm_back"/>
                   <!-- Part htd_45h_1circle_11 -->
                   <geom type="mesh" class="visual" pos="-0.0596436 0.0062757 -0.0522108" quat="1 0.00074741 -0.00041321 3.08837e-07" mesh="htd_45h_1circle" material="htd_45h_1circle_material"/>
                   <geom type="mesh" class="collision" pos="-0.0596436 0.0062757 -0.0522108" quat="1 0.00074741 -0.00041321 3.08837e-07" mesh="htd_45h_1circle" material="htd_45h_1circle_material"/>
