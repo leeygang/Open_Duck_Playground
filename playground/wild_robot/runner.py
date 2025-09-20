@@ -4,12 +4,12 @@ import argparse
 
 from playground.common import randomize
 from playground.common.runner import BaseRunner
-from playground.open_duck_mini_v2 import joystick, standing
+from playground.wild_robot import joystick, standing
 
 # from jax import config
 # config.update("jax_disable_jit", True)
 
-class OpenDuckMiniV2Runner(BaseRunner):
+class WildRobotRunner(BaseRunner):
 
     def __init__(self, args):
         super().__init__(args)
@@ -57,7 +57,7 @@ def main() -> None:
     # )
     args = parser.parse_args()
 
-    runner = OpenDuckMiniV2Runner(args)
+    runner = WildRobotRunner(args)
 
     runner.train()
 
