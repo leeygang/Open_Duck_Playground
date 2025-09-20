@@ -18,9 +18,12 @@
   <!-- Additional sensors.xml -->
   <sensor>
     <gyro site="imu" name="gyro"/>
-    <accelerometer site="imu" name="acc"/>
+    <accelerometer site="imu" name="accelerometer"/>
     <framequat objtype="site" objname="imu" name="orientation"/>
     <framezaxis objtype="site" objname="imu" name="upvector"/>
+    <framexaxis objtype="site" objname="imu" name="forwardvector"/>
+    <framelinvel objtype="site" objname="imu" name="global_linvel"/>
+    <frameangvel objtype="site" objname="imu" name="global_angvel"/>
     <gyro site="right_leg_imu" name="right_leg_gyro"/>
     <accelerometer site="right_leg_imu" name="right_leg_acc"/>
     <gyro site="left_leg_imu" name="left_leg_gyro"/>
