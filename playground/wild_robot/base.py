@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Base classes for Open Duck Mini V2. (based on Berkeley Humanoid)"""
+"""Base classes for Wild Robot. (based on Berkeley Humanoid)"""
 
 from typing import Any, Dict, Optional, Union
 
@@ -38,8 +38,8 @@ def get_assets() -> Dict[str, bytes]:
     return assets
 
 
-class OpenDuckMiniV2Env(mjx_env.MjxEnv):
-    """Base class for Open Duck Mini V2 environments."""
+class WildRobotEnv(mjx_env.MjxEnv):
+    """Base class for Wild Robot environments."""
 
     def __init__(
         self,
@@ -235,11 +235,6 @@ class OpenDuckMiniV2Env(mjx_env.MjxEnv):
         """Return the gravity vector in the world frame."""
         return mjx_env.get_sensor_data(self.mj_model, data, constants.GRAVITY_SENSOR)
 
-    def get_global_linvel(self, data: mjx.Data) -> jax.Array:
-        """Return the linear velocity of the robot in the world frame."""
-        return mjx_env.get_sensor_data(
-            self.mj_model, data, constants.GLOBAL_LINVEL_SENSOR
-        )
 
     def get_global_angvel(self, data: mjx.Data) -> jax.Array:
         """Return the angular velocity of the robot in the world frame."""
