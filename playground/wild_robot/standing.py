@@ -28,7 +28,7 @@ from mujoco_playground._src import mjx_env
 from mujoco_playground._src.collision import geoms_colliding
 
 from . import constants
-from . import base as open_duck_mini_v2_base
+from . import base as wild_robot_base
 from playground.common.poly_reference_motion import PolyReferenceMotion
 from playground.common.rewards import (
     cost_orientation,
@@ -114,7 +114,7 @@ def default_config() -> config_dict.ConfigDict:
     )
 
 
-class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
+class Standing(wild_robot_base.WildRobotEnv):
     """Standing policy"""
 
     def __init__(
@@ -137,11 +137,7 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
             "home"
         ).ctrl  # ctrl of all the actual joints (no floating base and no backlash)
 
-        if USE_IMITATION_REWARD:
-            self.PRM = PolyReferenceMotion(
-                "playground/open_duck_mini_v2/data/polynomial_coefficients.pkl"
-            )
-
+     
         # Note: First joint is freejoint.
         # get the range of the joints
         self._lowers, self._uppers = self.mj_model.jnt_range[1:].T
@@ -150,22 +146,6 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
         self._soft_lowers = c - 0.5 * r * self._config.soft_joint_pos_limit_factor
         self._soft_uppers = c + 0.5 * r * self._config.soft_joint_pos_limit_factor
 
-        # weights for computing the cost of each joints compared to a reference pose
-        self._weights = jp.array(
-            [
-                1.0,
-                1.0,
-                0.01,
-                0.01,
-                1.0,  # left leg.
-                # 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, #head
-                1.0,
-                1.0,
-                0.01,
-                0.01,
-                1.0,  # right leg.
-            ]
-        )
 
         self._njoints = self._mj_model.njnt  # number of joints
         self._actuators = self._mj_model.nu  # number of actuators
@@ -182,6 +162,7 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
             [self._mj_model.geom(name).id for name in constants.FEET_GEOMS]
         )
 
+        # foot sensor for debug
         foot_linvel_sensor_adr = []
         for site in constants.FEET_SITES:
             sensor_id = self._mj_model.sensor(f"{site}_global_linvel").id
@@ -202,7 +183,7 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
             idx for idx, j in enumerate(constants.JOINTS_ORDER_NO_HEAD) if "_knee" in j
         ]
         ankle_ids = [
-            idx for idx, j in enumerate(constants.JOINTS_ORDER_NO_HEAD) if "_ankle" in j
+            idx for idx, j in enumerate(constants.JOINTS_ORDER_NO_HEAD) if "_ankle" in j or "_foot" in j
         ]
 
         qpos_noise_scale[hip_ids] = self._config.noise_config.scales.hip_pos
@@ -278,12 +259,7 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
         )
         push_interval_steps = jp.round(push_interval / self.dt).astype(jp.int32)
 
-        if USE_IMITATION_REWARD:
-            current_reference_motion = self.PRM.get_reference_motion(
-                cmd[0], cmd[1], cmd[2], 0
-            )
-        else:
-            current_reference_motion = jp.zeros(0)
+        current_reference_motion = jp.zeros(0)
 
         info = {
             "rng": rng,
@@ -331,23 +307,8 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
 
     def step(self, state: mjx_env.State, action: jax.Array) -> mjx_env.State:
 
-        if USE_IMITATION_REWARD:
-            state.info["imitation_i"] += 1
-            state.info["imitation_i"] = (
-                state.info["imitation_i"] % self.PRM.nb_steps_in_period
-            )  # not critical, is already moduloed in get_reference_motion
-        else:
-            state.info["imitation_i"] = 0
-
-        if USE_IMITATION_REWARD:
-            state.info["current_reference_motion"] = self.PRM.get_reference_motion(
-                state.info["command"][0],
-                state.info["command"][1],
-                state.info["command"][2],
-                state.info["imitation_i"],
-            )
-        else:
-            state.info["current_reference_motion"] = jp.zeros(0)
+        state.info["imitation_i"] = 0
+        state.info["current_reference_motion"] = jp.zeros(0)
 
         state.info["rng"], push1_rng, push2_rng, action_delay_rng = jax.random.split(
             state.info["rng"], 4

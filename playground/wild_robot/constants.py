@@ -34,6 +34,13 @@ def task_to_xml(task_name: str) -> epath.Path:
     }[task_name]
 
 
+FEET_SITES = [
+    "left_foot_front",
+    "left_foot_back",
+    "right_foot_front",
+    "right_foot_back",
+]
+
 LEFT_FEET_GEOMS = [
     "left_foot_btm_front",
     "left_foot_btm_back",
