@@ -42,7 +42,7 @@
     </default>
   </default>
   <worldbody>
-    <body name="base" pos="0 0 0.22">
+    <body name="base" pos="0 0 0.49">
       <freejoint name="floating_base"/>
       <!-- Link waist -->
       <body name="waist" pos="0 0 0" quat="1 0 0 0" childclass="wild_robot">

@@ -8,17 +8,19 @@
     </visual>
 
     <asset>
-        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512"
-            height="3072" />
-        <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
-            rgb2="0.1 0.2 0.3"
-            markrgb="0.8 0.8 0.8" width="300" height="300" />
-        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
-            reflectance="0.2" />
+        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072" />
+        <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2" />
     </asset>
 
     <worldbody>
         <light pos="0 0 3.5" dir="0 0 -1" directional="true" />
         <geom name="floor" size="0 0 0.05" pos="0 0 0" type="plane" material="groundplane" />
     </worldbody>
+
+    <!-- add somewhere under the <mujoco> root (top-level) -->
+    <keyframe name="home" qpos="-0.00692549 0.0149391 0.487869 0.999632 -0.0254871 -0.00610409 -0.00700632 -3.42235e-05 -0.00215037 -0.0452561 0.0278619 0.0200629 0.0390773 -2.97196e-05 0.0469174 0.0275132 0.0237825 -0.0304712" />
+
 </mujoco>
+
+
