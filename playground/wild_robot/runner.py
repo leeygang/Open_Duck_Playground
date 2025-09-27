@@ -4,7 +4,7 @@ import argparse
 
 from playground.common import randomize
 from playground.common.runner import BaseRunner
-from playground.wild_robot import joystick, standing
+from playground.wild_robot import standing
 
 # from jax import config
 # config.update("jax_disable_jit", True)
@@ -14,7 +14,7 @@ class WildRobotRunner(BaseRunner):
     def __init__(self, args):
         super().__init__(args)
         available_envs = {
-            "joystick": (joystick, joystick.Joystick),
+            #"joystick": (joystick, joystick.Joystick),
             "standing": (standing, standing.Standing),
         }
         if args.env not in available_envs:
@@ -35,7 +35,7 @@ class WildRobotRunner(BaseRunner):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Open Duck Mini Runner Script")
+    parser = argparse.ArgumentParser(description="Wild Robot Runner Script")
     parser.add_argument(
         "--output_dir",
         type=str,
@@ -44,7 +44,7 @@ def main() -> None:
     )
     # parser.add_argument("--num_timesteps", type=int, default=300000000)
     parser.add_argument("--num_timesteps", type=int, default=150000000)
-    parser.add_argument("--env", type=str, default="joystick", help="env")
+    parser.add_argument("--env", type=str, default="standing", help="env")
     parser.add_argument("--task", type=str, default="flat_terrain", help="Task to run")
     parser.add_argument(
         "--restore_checkpoint_path",

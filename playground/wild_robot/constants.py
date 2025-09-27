@@ -72,6 +72,7 @@ FEET_GEOMS = LEFT_FEET_GEOMS + RIGHT_FEET_GEOMS
 
 
 ROOT_BODY = "waist"
+TRUNK_IMU = "trunk_imu"
 
 GRAVITY_SENSOR = "upvector"
 ACCELEROMETER_SENSOR = "accelerometer"

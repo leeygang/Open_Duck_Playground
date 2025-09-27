@@ -152,7 +152,7 @@ class Standing(wild_robot_base.WildRobotEnv):
 
         self._torso_body_id = self._mj_model.body(constants.ROOT_BODY).id
         self._torso_mass = self._mj_model.body_subtreemass[self._torso_body_id]
-        self._site_id = self._mj_model.site("imu").id
+        self._site_id = self._mj_model.site(constants.TRUNK_IMU).id
 
         self._feet_site_id = np.array(
             [self._mj_model.site(name).id for name in constants.FEET_SITES]

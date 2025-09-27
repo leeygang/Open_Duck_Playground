@@ -11,3 +11,4 @@ checkpoints/
 *.TXT
 .venv/
 .vscode/
+.DS_Store
