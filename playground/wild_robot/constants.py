@@ -74,11 +74,11 @@ FEET_GEOMS = LEFT_FEET_GEOMS + RIGHT_FEET_GEOMS
 ROOT_BODY = "waist"
 TRUNK_IMU = "trunk_imu"
 
-GRAVITY_SENSOR = "upvector"
-ACCELEROMETER_SENSOR = "accelerometer"
-GYRO_SENSOR = "gyro"
+GRAVITY_SENSOR = "trunk_upvector"
+ACCELEROMETER_SENSOR = "trunk_accelerometer"
+GYRO_SENSOR = "trunk_gyro"
 # debug
-GLOBAL_LINVEL_SENSOR = "global_linvel"
-GLOBAL_ANGVEL_SENSOR = "global_angvel"
-LOCAL_LINVEL_SENSOR = "local_linvel"
+GLOBAL_LINVEL_SENSOR = "trunk_global_linvel"
+GLOBAL_ANGVEL_SENSOR = "trunk_global_angvel"
+LOCAL_LINVEL_SENSOR = "trunk_local_linvel"
 
