@@ -14,7 +14,7 @@ class WildRobotRunner(BaseRunner):
     def __init__(self, args):
         super().__init__(args)
         available_envs = {
-            #"joystick": (joystick, joystick.Joystick),
+            "joystick": (standing, standing.Standing),
             "standing": (standing, standing.Standing),
         }
         if args.env not in available_envs:
