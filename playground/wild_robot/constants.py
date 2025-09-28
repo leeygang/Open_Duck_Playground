@@ -28,9 +28,6 @@ ROUGH_TERRAIN_BACKLASH_XML = ROOT_PATH / "xmls" / "scene_rough_terrain_backlash.
 def task_to_xml(task_name: str) -> epath.Path:
     return {
         "flat_terrain": FLAT_TERRAIN_XML,
-        "rough_terrain": ROUGH_TERRAIN_XML,
-        "flat_terrain_backlash": FLAT_TERRAIN_BACKLASH_XML,
-        "rough_terrain_backlash": ROUGH_TERRAIN_BACKLASH_XML,
     }[task_name]
 
 
@@ -68,15 +65,26 @@ JOINTS_ORDER_NO_HEAD = [
 ]
 
 
+SENSOR_GYRO = [
+    "trunk_gyro",
+    "left_leg_gyro",
+    "right_leg_gyro",
+]
+
+SENSOR_ACCELEROMETER = [
+    "trunk_accelerometer",
+    "left_leg_accelerometer",
+    "right_leg_accelerometer",
+]
+
 FEET_GEOMS = LEFT_FEET_GEOMS + RIGHT_FEET_GEOMS
 
 
 ROOT_BODY = "waist"
 TRUNK_IMU = "trunk_imu"
-
 GRAVITY_SENSOR = "trunk_upvector"
-ACCELEROMETER_SENSOR = "trunk_accelerometer"
-GYRO_SENSOR = "trunk_gyro"
+MAGNETOMETER_SENSOR = "trunk_magnetometer"
+
 # debug
 GLOBAL_LINVEL_SENSOR = "trunk_global_linvel"
 GLOBAL_ANGVEL_SENSOR = "trunk_global_angvel"

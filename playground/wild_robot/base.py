@@ -231,6 +231,10 @@ class WildRobotEnv(mjx_env.MjxEnv):
         return jp.array(full_qpos)
 
     # Sensor readings.
+    def get_magnet(self, data: mjx.Data) -> jax.Array:
+        """Return the magnetometer vector"""
+        return mjx_env.get_sensor_data(self.mj_model, data, constants.MAGNETOMETER_SENSOR)
+    
     def get_gravity(self, data: mjx.Data) -> jax.Array:
         """Return the gravity vector in the world frame."""
         return mjx_env.get_sensor_data(self.mj_model, data, constants.GRAVITY_SENSOR)
@@ -248,17 +252,16 @@ class WildRobotEnv(mjx_env.MjxEnv):
             self.mj_model, data, constants.LOCAL_LINVEL_SENSOR
         )
 
-    def get_accelerometer(self, data: mjx.Data) -> jax.Array:
+    def get_accelerometers(self, data: mjx.Data) -> jax.Array:
         """Return the accelerometer readings in the local frame."""
-        return mjx_env.get_sensor_data(
-            self.mj_model, data, constants.ACCELEROMETER_SENSOR
-        )
+        acc_vecs = [mjx_env.get_sensor_data(self.mj_model, data, name) for name in constants.SENSOR_ACCELEROMETER]
+        return jp.concatenate(acc_vecs, axis=0)
 
-    def get_gyro(self, data: mjx.Data) -> jax.Array:
+
+    def get_gyros(self, data: mjx.Data) -> jax.Array:
         """Return the gyroscope readings in the local frame."""
-        return mjx_env.get_sensor_data(self.mj_model, data, constants.GYRO_SENSOR)
-
-
+        gyro_vecs = [mjx_env.get_sensor_data(self.mj_model, data, name) for name in constants.SENSOR_GYRO]
+        return jp.concatenate(gyro_vecs, axis=0)
 
     # Accessors.
 

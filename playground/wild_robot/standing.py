@@ -82,6 +82,7 @@ def default_config() -> config_dict.ConfigDict:
                 linvel=0.1,
                 gyro=0.05,
                 accelerometer=0.005,
+                magnet=0.01,
             ),
         ),
         reward_config=config_dict.create(
@@ -424,22 +425,73 @@ class Standing(wild_robot_base.WildRobotEnv):
         self, data: mjx.Data, info: dict[str, Any], contact: jax.Array
     ) -> mjx_env.Observation:
 
-        gyro = self.get_gyro(data)
+        gyros = self.get_gyros(data)
         info["rng"], noise_rng = jax.random.split(info["rng"])
-        noisy_gyro = (
-            gyro
-            + (2 * jax.random.uniform(noise_rng, shape=gyro.shape) - 1)
+        noisy_gyros = (
+            gyros
+            + (2 * jax.random.uniform(noise_rng, shape=gyros.shape) - 1)
             * self._config.noise_config.level
             * self._config.noise_config.scales.gyro
         )
 
-        accelerometer = self.get_accelerometer(data)
+        accelerometers = self.get_accelerometers(data)
         info["rng"], noise_rng = jax.random.split(info["rng"])
-        noisy_accelerometer = (
-            accelerometer
-            + (2 * jax.random.uniform(noise_rng, shape=accelerometer.shape) - 1)
+        noisy_accelerometers = (
+            accelerometers
+            + (2 * jax.random.uniform(noise_rng, shape=accelerometers.shape) - 1)
             * self._config.noise_config.level
             * self._config.noise_config.scales.accelerometer
+        )
+
+        magnet = self.get_magnet(data)
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_magnet = (
+            magnet
+            + (2 * jax.random.uniform(noise_rng, shape=magnet.shape) - 1)
+            * self._config.noise_config.level
+            * self._config.noise_config.scales.magnet
+        )
+
+        # Handling backlash
+        joint_angles = self.get_actuator_joints_qpos(data.qpos)
+        joint_backlash = self.get_actuator_backlash_qpos(data.qpos)
+
+        for i in self.backlash_idx_to_add:
+            joint_backlash = jp.insert(joint_backlash, i, 0)
+
+        joint_angles = joint_angles + joint_backlash
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_joint_angles = (
+            joint_angles
+            + (2.0 * jax.random.uniform(noise_rng, shape=joint_angles.shape) - 1.0)
+            * self._config.noise_config.level
+            * self._qpos_noise_scale
+        )
+
+        # joint_vel = data.qvel[6:]
+        joint_vel = self.get_actuator_joints_qvel(data.qvel)
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_joint_vel = (
+            joint_vel
+            + (2.0 * jax.random.uniform(noise_rng, shape=joint_vel.shape) - 1.0)
+            * self._config.noise_config.level
+            * self._config.noise_config.scales.joint_vel
+        )
+
+        state = jp.hstack(
+            [
+                noisy_gyros,  # 9 (3 IMU)
+                noisy_accelerometers,  # 9 (3 IMU)
+                noisy_magnet, # 3
+                info["command"],  # 3
+                noisy_joint_angles - self._default_actuator,  # 10
+                noisy_joint_vel * self._config.dof_vel_scale,  # 10
+                info["last_act"],  # 10
+                info["last_last_act"],  # 10
+                info["last_last_last_act"],  # 10
+                contact,  # 2
+                info["current_reference_motion"],
+            ]
         )
 
         gravity = data.site_xmat[self._site_id].T @ jp.array([0, 0, -1])
@@ -462,35 +514,6 @@ class Standing(wild_robot_base.WildRobotEnv):
         )
         noisy_gravity = imu_history.reshape((-1, 3))[imu_idx[0]]
 
-        # joint_angles = data.qpos[7:]
-
-        # Handling backlash
-        joint_angles = self.get_actuator_joints_qpos(data.qpos)
-        joint_backlash = self.get_actuator_backlash_qpos(data.qpos)
-
-        for i in self.backlash_idx_to_add:
-            joint_backlash = jp.insert(joint_backlash, i, 0)
-
-        joint_angles = joint_angles + joint_backlash
-
-        info["rng"], noise_rng = jax.random.split(info["rng"])
-        noisy_joint_angles = (
-            joint_angles
-            + (2.0 * jax.random.uniform(noise_rng, shape=joint_angles.shape) - 1.0)
-            * self._config.noise_config.level
-            * self._qpos_noise_scale
-        )
-
-        # joint_vel = data.qvel[6:]
-        joint_vel = self.get_actuator_joints_qvel(data.qvel)
-        info["rng"], noise_rng = jax.random.split(info["rng"])
-        noisy_joint_vel = (
-            joint_vel
-            + (2.0 * jax.random.uniform(noise_rng, shape=joint_vel.shape) - 1.0)
-            * self._config.noise_config.level
-            * self._config.noise_config.scales.joint_vel
-        )
-
         linvel = self.get_local_linvel(data)
         # info["rng"], noise_rng = jax.random.split(info["rng"])
         # noisy_linvel = (
@@ -499,26 +522,6 @@ class Standing(wild_robot_base.WildRobotEnv):
         #     * self._config.noise_config.level
         #     * self._config.noise_config.scales.linvel
         # )
-
-        state = jp.hstack(
-            [
-                # noisy_linvel,  # 3
-                # noisy_gyro,  # 3
-                # noisy_gravity,  # 3
-                noisy_gyro,  # 3
-                noisy_accelerometer,  # 3
-                info["command"],  # 3
-                noisy_joint_angles - self._default_actuator,  # 10
-                noisy_joint_vel * self._config.dof_vel_scale,  # 10
-                info["last_act"],  # 10
-                info["last_last_act"],  # 10
-                info["last_last_last_act"],  # 10
-                contact,  # 2
-                info["current_reference_motion"],
-            ]
-        )
-
-        accelerometer = self.get_accelerometer(data)
         global_angvel = self.get_global_angvel(data)
         feet_vel = data.sensordata[self._foot_linvel_sensor_adr].ravel()
         root_height = data.qpos[self._floating_base_qpos_addr + 2]
@@ -526,8 +529,8 @@ class Standing(wild_robot_base.WildRobotEnv):
         privileged_state = jp.hstack(
             [
                 state,
-                gyro,  # 3
-                accelerometer,  # 3
+                gyros,  # 9
+                accelerometers,  # 9
                 gravity,  # 3
                 linvel,  # 3
                 global_angvel,  # 3

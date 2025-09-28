@@ -16,6 +16,8 @@ dependencies = [
     "pygame>=2.6.1",
     "tensorflow>=2.18.0",
     "tf2onnx>=1.16.1",
+    "onshape-to-robot",
+    "pymeshlab",
 ]
 
 [project.optional-dependencies]

@@ -17,34 +17,37 @@
   </default>
   <!-- Additional sensors.xml -->
   <sensor>
-    <gyro site="trunk_imu" name="gyro"/>
-    <accelerometer site="trunk_imu" name="right_accelerometer"/>
+    <!-- Hardware capability-->
+    <gyro site="trunk_imu" name="trunk_gyro"/>
+    <accelerometer site="trunk_imu" name="trunk_accelerometer"/>
+    <magnetometer site="trunk_imu" name="trunk_magnetometer"/>
+
+    <gyro site="right_leg_imu" name="right_leg_gyro"/>
+    <accelerometer site="right_leg_imu" name="right_leg_accelerometer"/>
+    <gyro site="left_leg_imu" name="left_leg_gyro"/>
+    <accelerometer site="left_leg_imu" name="left_leg_accelerometer"/>
+
+    <!-- Read from simulator -->
+    <velocimeter site="trunk_imu" name="trunk_local_linvel"/>
     <framequat objtype="site" objname="trunk_imu" name="trunk_orientation"/>
     <framezaxis objtype="site" objname="trunk_imu" name="trunk_upvector"/>
     <framexaxis objtype="site" objname="trunk_imu" name="trunk_forwardvector"/>
     <framelinvel objtype="site" objname="trunk_imu" name="trunk_global_linvel"/>
     <frameangvel objtype="site" objname="trunk_imu" name="trunk_global_angvel"/>
 
-    <gyro site="right_leg_imu" name="right_leg_gyro"/>
-    <velocimeter site="right_leg_imu" name="right_leg_local_linvel"/>
-    <accelerometer site="right_leg_imu" name="right_leg_accelerometer"/>
+    <framelinvel objtype="site" objname="right_leg_imu" name="right_leg_global_linvel"/>
+    <frameangvel objtype="site" objname="right_leg_imu" name="right_leg_global_angvel" />
+    <framelinvel objtype="site" objname="left_leg_imu" name="left_leg_global_linvel"/>
+    <frameangvel objtype="site" objname="left_leg_imu" name="left_leg_global_angvel" />
 
-    <gyro site="left_leg_imu" name="left_leg_gyro"/>
-    <velocimeter site="left_leg_imu" name="left_leg_local_linvel"/>
-    <accelerometer site="left_leg_imu" name="left_leg_accelerometer"/>
-
-    <gyro site="right_foot_front" name="right_foot_front_gyro"/>
-    <accelerometer site="right_foot_front" name="right_foot_front_accelerometer"/>
     <framelinvel objtype="site" objname="right_foot_front" name="right_foot_front_global_linvel"/>
-    <gyro site="right_foot_back" name="right_foot_back_gyro"/>
-    <accelerometer site="right_foot_back" name="right_foot_back_accelerometer"/>
     <framelinvel objtype="site" objname="right_foot_back" name="right_foot_back_global_linvel"/>
-    <gyro site="left_foot_front" name="left_foot_front_gyro"/>
-    <accelerometer site="left_foot_front" name="left_foot_front_accelerometer"/>
     <framelinvel objtype="site" objname="left_foot_front" name="left_foot_front_global_linvel"/>
-    <gyro site="left_foot_back" name="left_foot_back_gyro"/>
-    <accelerometer site="left_foot_back" name="left_foot_back_accelerometer"/>
     <framelinvel objtype="site" objname="left_foot_back" name="left_foot_back_global_linvel"/>
+    <frameangvel objtype="site" objname="right_foot_front" name="right_foot_front_global_angvel"/>
+    <frameangvel objtype="site" objname="right_foot_back" name="right_foot_back_global_angvel"/>
+    <frameangvel objtype="site" objname="left_foot_front" name="left_foot_front_global_angvel"/>
+    <frameangvel objtype="site" objname="left_foot_back" name="left_foot_back_global_angvel"/>
   </sensor>
   <!-- Additional joints_properties.xml -->
   <default>
@@ -59,7 +62,7 @@
     </default>
   </default>
   <worldbody>
-    <body name="base" pos="0 0 0.49">
+    <body name="base" pos="0 0 0.5">
       <freejoint name="floating_base"/>
       <!-- Link waist -->
       <body name="waist" pos="0 0 0" quat="1 0 0 0" childclass="wild_robot">
