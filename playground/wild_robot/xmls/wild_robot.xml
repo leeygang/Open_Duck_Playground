@@ -13,6 +13,13 @@
     </default>
   </default>
   <sensor>
+    <gyro site="trunk_imu" name="trunk_gyro" />
+    <accelerometer site="trunk_imu" name="trunk_accelerometer" />
+    <magnetometer site="trunk_imu" name="trunk_magnetometer" />
+    <gyro site="right_leg_imu" name="right_leg_gyro" />
+    <accelerometer site="right_leg_imu" name="right_leg_accelerometer" />
+    <gyro site="left_leg_imu" name="left_leg_gyro" />
+    <accelerometer site="left_leg_imu" name="left_leg_accelerometer" />
     <velocimeter site="trunk_imu" name="trunk_local_linvel" />
     <framequat objtype="site" objname="trunk_imu" name="trunk_orientation" />
     <framezaxis objtype="site" objname="trunk_imu" name="trunk_upvector" />

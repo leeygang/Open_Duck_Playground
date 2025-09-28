@@ -43,6 +43,13 @@ from playground.common.rewards import (
 #from jax import config
 #config.update("jax_disable_jit", True)
 
+@jax.jit
+def print_jax_array(x):
+    # This works inside JIT-compiled functions
+    # real_value = jax.device_get(x)
+    jax.debug.print("x shape: {}", x.shape)
+    jax.debug.print("x values: {}", x)
+    return x * 2
 
 
 # if set to false, won't require the reference data to be present and won't compute the reference motions polynoms for nothing
@@ -123,8 +130,6 @@ class Standing(wild_robot_base.WildRobotEnv):
             config_overrides=config_overrides,
         )
         self._post_init()
-        print("standing init")
-
 
     def _post_init(self) -> None:
 
@@ -189,40 +194,45 @@ class Standing(wild_robot_base.WildRobotEnv):
         self._qpos_noise_scale = jp.array(qpos_noise_scale)
 
     def reset(self, rng: jax.Array) -> mjx_env.State:
-        print("reset")
         qpos = self._init_q  # the complete qpos
+        print(f'DEBUG0 init qpos: {qpos}')
         qvel = jp.zeros(self.mjx_model.nv)
 
         # init position/orientation in environment
         # x=+U(-0.05, 0.05), y=+U(-0.05, 0.05), yaw=U(-3.14, 3.14).
-        # rng, key = jax.random.split(rng)
-        # dxy = jax.random.uniform(key, (2,), minval=-0.05, maxval=0.05)
+        rng, key = jax.random.split(rng)
+        dxy = jax.random.uniform(key, (2,), minval=-0.05, maxval=0.05)
 
         # floating base
         base_qpos = self.get_floating_base_qpos(qpos)
-        # base_qpos = base_qpos.at[0:2].set(
-        #     qpos[self._floating_base_qpos_addr : self._floating_base_qpos_addr + 2]
-        #     + dxy
-        # )  # x y noise
+        base_qpos = base_qpos.at[0:2].set(
+            qpos[self._floating_base_qpos_addr : self._floating_base_qpos_addr + 2]
+            + dxy
+        )  # x y noise
 
-        # rng, key = jax.random.split(rng)
-        # yaw = jax.random.uniform(key, (1,), minval=-3.14, maxval=3.14)
-        # quat = math.axis_angle_to_quat(jp.array([0, 0, 1]), yaw)
-        # new_quat = math.quat_mul(
-        #     qpos[self._floating_base_qpos_addr + 3 : self._floating_base_qpos_addr + 7],
-        #     quat,
-        # )  # yaw noise
+        rng, key = jax.random.split(rng)
+        yaw = jax.random.uniform(key, (1,), minval=-3.14, maxval=3.14)
+        quat = math.axis_angle_to_quat(jp.array([0, 0, 1]), yaw)
+        new_quat = math.quat_mul(
+            qpos[self._floating_base_qpos_addr + 3 : self._floating_base_qpos_addr + 7],
+            quat,
+        )  # yaw noise
 
-        # base_qpos = base_qpos.at[3:7].set(new_quat)
+        base_qpos = base_qpos.at[3:7].set(new_quat)
 
         qpos = self.set_floating_base_qpos(base_qpos, qpos)
-        # rng, key = jax.random.split(rng)
+        # print(f'DEBUG1 base qpos: {list(qpos)}')
+        #with jax.disable_jit():
+        print_jax_array(qpos)
+        # init joint position
+        # qpos[7:]=*U(0.0, 0.1)
+        rng, key = jax.random.split(rng)
 
-        # # multiply actual joints with noise (excluding floating base and backlash)
-        # qpos_j = self.get_actuator_joints_qpos(qpos) * jax.random.uniform(
-        #     key, (self._actuators,), minval=0.5, maxval=1.5
-        # )
-        # qpos = self.set_actuator_joints_qpos(qpos_j, qpos)
+        # multiply actual joints with noise (excluding floating base and backlash)
+        qpos_j = self.get_actuator_joints_qpos(qpos) * jax.random.uniform(
+            key, (self._actuators,), minval=0.5, maxval=1.5
+        )
+        qpos = self.set_actuator_joints_qpos(qpos_j, qpos)
         # print(f'DEBUG2 joint qpos: {qpos}')
         # init joint vel
         # d(xyzrpy)=U(-0.05, 0.05)
@@ -238,46 +248,44 @@ class Standing(wild_robot_base.WildRobotEnv):
         ctrl = self.get_actuator_joints_qpos(qpos)
         # print(f'DEBUG4 ctrl: {ctrl}')
         data = mjx_env.init(self.mjx_model, qpos=qpos, qvel=qvel, ctrl=ctrl)
-        # rng, cmd_rng = jax.random.split(rng)
-        # cmd = self.sample_command(cmd_rng)
+        rng, cmd_rng = jax.random.split(rng)
+        cmd = self.sample_command(cmd_rng)
 
         # Sample push interval.
-        # rng, push_rng = jax.random.split(rng)
-        # push_interval = jax.random.uniform(
-        #     push_rng,
-        #     minval=self._config.push_config.interval_range[0],
-        #     maxval=self._config.push_config.interval_range[1],
-        # )
-        # push_interval_steps = jp.round(push_interval / self.dt).astype(jp.int32)
+        rng, push_rng = jax.random.split(rng)
+        push_interval = jax.random.uniform(
+            push_rng,
+            minval=self._config.push_config.interval_range[0],
+            maxval=self._config.push_config.interval_range[1],
+        )
+        push_interval_steps = jp.round(push_interval / self.dt).astype(jp.int32)
 
-        #current_reference_motion = jp.zeros(0)
+        current_reference_motion = jp.zeros(0)
 
-        #TODO: debug
-        info = {}
-        # info = {
-        #     "rng": rng,
-        #     "step": 0,
-        #     "command": cmd,
-        #     "last_act": jp.zeros(self.mjx_model.nu),
-        #     "last_last_act": jp.zeros(self.mjx_model.nu),
-        #     "last_last_last_act": jp.zeros(self.mjx_model.nu),
-        #     "motor_targets": jp.zeros(self.mjx_model.nu),
-        #     "feet_air_time": jp.zeros(2),
-        #     "last_contact": jp.zeros(2, dtype=bool),
-        #     "swing_peak": jp.zeros(2),
-        #     # Push related.
-        #     "push": jp.array([0.0, 0.0]),
-        #     "push_step": 0,
-        #     "push_interval_steps": push_interval_steps,
-        #     # History related.
-        #     "action_history": jp.zeros(
-        #         self._config.noise_config.action_max_delay * self._actuators
-        #     ),
-        #     "imu_history": jp.zeros(self._config.noise_config.imu_max_delay * 3),
-        #     # imitation related
-        #     "imitation_i": 0,
-        #     "current_reference_motion": current_reference_motion,
-        # }
+        info = {
+            "rng": rng,
+            "step": 0,
+            "command": cmd,
+            "last_act": jp.zeros(self.mjx_model.nu),
+            "last_last_act": jp.zeros(self.mjx_model.nu),
+            "last_last_last_act": jp.zeros(self.mjx_model.nu),
+            "motor_targets": jp.zeros(self.mjx_model.nu),
+            "feet_air_time": jp.zeros(2),
+            "last_contact": jp.zeros(2, dtype=bool),
+            "swing_peak": jp.zeros(2),
+            # Push related.
+            "push": jp.array([0.0, 0.0]),
+            "push_step": 0,
+            "push_interval_steps": push_interval_steps,
+            # History related.
+            "action_history": jp.zeros(
+                self._config.noise_config.action_max_delay * self._actuators
+            ),
+            "imu_history": jp.zeros(self._config.noise_config.imu_max_delay * 3),
+            # imitation related
+            "imitation_i": 0,
+            "current_reference_motion": current_reference_motion,
+        }
 
         metrics = {}
         for k, v in self._config.reward_config.scales.items():
@@ -296,13 +304,10 @@ class Standing(wild_robot_base.WildRobotEnv):
         )
         obs = self._get_obs(data, info, contact)
         reward, done = jp.zeros(2)
-        print("reset end")
         return mjx_env.State(data, obs, reward, done, metrics, info)
 
     def step(self, state: mjx_env.State, action: jax.Array) -> mjx_env.State:
-        print("[stading.py]step....")
-        print("debug early stop")
-        return state;
+
         state.info["imitation_i"] = 0
         state.info["current_reference_motion"] = jp.zeros(0)
 
@@ -410,7 +415,6 @@ class Standing(wild_robot_base.WildRobotEnv):
 
         done = done.astype(reward.dtype)
         state = state.replace(data=data, obs=obs, reward=reward, done=done)
-        print("step end")
         return state
 
     def _get_termination(self, data: mjx.Data) -> jax.Array:
@@ -420,42 +424,33 @@ class Standing(wild_robot_base.WildRobotEnv):
     def _get_obs(
         self, data: mjx.Data, info: dict[str, Any], contact: jax.Array
     ) -> mjx_env.Observation:
-        print("__get_obs")
-        print("_get_obs early end")
-        print(f"info:{info}")
-        state = jp.zeros(3)
-        ps = jp.zeros(9)
-        return {
-            "state": state,
-            "privileged_state": ps}
-        
-        # gyros = self.get_gyros(data)
-        # info["rng"], noise_rng = jax.random.split(info["rng"])
-        # noisy_gyros = (
-        #     gyros
-        #     + (2 * jax.random.uniform(noise_rng, shape=gyros.shape) - 1)
-        #     * self._config.noise_config.level
-        #     * self._config.noise_config.scales.gyro
-        # )
 
-        # accelerometers = self.get_accelerometers(data)
-        # info["rng"], noise_rng = jax.random.split(info["rng"])
-        # noisy_accelerometers = (
-        #     accelerometers
-        #     + (2 * jax.random.uniform(noise_rng, shape=accelerometers.shape) - 1)
-        #     * self._config.noise_config.level
-        #     * self._config.noise_config.scales.accelerometer
-        # )
+        gyros = self.get_gyros(data)
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_gyros = (
+            gyros
+            + (2 * jax.random.uniform(noise_rng, shape=gyros.shape) - 1)
+            * self._config.noise_config.level
+            * self._config.noise_config.scales.gyro
+        )
 
-        
-        #magnet = self.get_magnet(data)
-        #info["rng"], noise_rng = jax.random.split(info["rng"])
-        #noisy_magnet = (
-        #    magnet
-        #    + (2 * jax.random.uniform(noise_rng, shape=magnet.shape) - 1)
-        #    * self._config.noise_config.level
-        #    * self._config.noise_config.scales.magnet
-        #)
+        accelerometers = self.get_accelerometers(data)
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_accelerometers = (
+            accelerometers
+            + (2 * jax.random.uniform(noise_rng, shape=accelerometers.shape) - 1)
+            * self._config.noise_config.level
+            * self._config.noise_config.scales.accelerometer
+        )
+
+        magnet = self.get_magnet(data)
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_magnet = (
+            magnet
+            + (2 * jax.random.uniform(noise_rng, shape=magnet.shape) - 1)
+            * self._config.noise_config.level
+            * self._config.noise_config.scales.magnet
+        )
 
         # Handling backlash
         joint_angles = self.get_actuator_joints_qpos(data.qpos)
@@ -485,9 +480,9 @@ class Standing(wild_robot_base.WildRobotEnv):
 
         state = jp.hstack(
             [
-                #noisy_gyros,  # 9 (3 IMU)
-                #noisy_accelerometers,  # 9 (3 IMU)
-                #noisy_magnet, # 3
+                noisy_gyros,  # 9 (3 IMU)
+                noisy_accelerometers,  # 9 (3 IMU)
+                noisy_magnet, # 3
                 info["command"],  # 3
                 noisy_joint_angles - self._default_actuator,  # 10
                 noisy_joint_vel * self._config.dof_vel_scale,  # 10
@@ -534,8 +529,8 @@ class Standing(wild_robot_base.WildRobotEnv):
         privileged_state = jp.hstack(
             [
                 state,
-                #gyros,  # 9
-                #accelerometers,  # 9
+                gyros,  # 9
+                accelerometers,  # 9
                 gravity,  # 3
                 linvel,  # 3
                 global_angvel,  # 3
@@ -549,12 +544,11 @@ class Standing(wild_robot_base.WildRobotEnv):
                 info["current_reference_motion"],
             ]
         )
-        print("_get_obs end")
+
         return {
             "state": state,
             "privileged_state": privileged_state,
         }
-
 
     def _get_reward(
         self,
@@ -567,7 +561,6 @@ class Standing(wild_robot_base.WildRobotEnv):
         contact: jax.Array,
     ) -> dict[str, jax.Array]:
         del metrics  # Unused.
-        print("get_reward")
 
         ret = {
             "orientation": cost_orientation(self.get_gravity(data)),
@@ -639,10 +632,10 @@ class Standing(wild_robot_base.WildRobotEnv):
                     0.0,
                     0.0,
                     0.0,
-                    0.0, #neck_pitch,
-                    0.0, #head_pitch,
-                    0.0, #head_yaw,
-                    0.0, #head_roll,
+                    neck_pitch,
+                    head_pitch,
+                    head_yaw,
+                    head_roll,
                 ]
             ),
         )
