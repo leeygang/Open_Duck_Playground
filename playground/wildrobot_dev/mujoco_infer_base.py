@@ -1,7 +1,7 @@
 import mujoco
 import numpy as np
 from etils import epath
-from playground.wild_robot import base
+from playground.wildrobot_dev import base
 
 
 class MJInferBase:

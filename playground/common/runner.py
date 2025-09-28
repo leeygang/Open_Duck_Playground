@@ -54,6 +54,7 @@ class BaseRunner(ABC):
         os.environ["JAX_COMPILATION_CACHE_DIR"] = ".tmp/jax_cache"
 
     def progress_callback(self, num_steps: int, metrics: dict) -> None:
+        print("[BASE RUNNER] progress_callback")
 
         for metric_name, metric_value in metrics.items():
             # Convert to float, but watch out for 0-dim JAX arrays
@@ -67,6 +68,7 @@ class BaseRunner(ABC):
 
     def policy_params_fn(self, current_step, make_policy, params):
         # save checkpoints
+        print("[BASE RUNNER] policy_params_fn")
 
         orbax_checkpointer = ocp.PyTreeCheckpointer()
         save_args = orbax_utils.save_args_from_target(params)
@@ -110,7 +112,7 @@ class BaseRunner(ABC):
             policy_params_fn=self.policy_params_fn,
             restore_checkpoint_path=self.restore_checkpoint_path,
         )
-
+        print("[BASE RUNNER] start training")
         _, params, _ = train_fn(
             environment=self.env,
             eval_env=self.eval_env,

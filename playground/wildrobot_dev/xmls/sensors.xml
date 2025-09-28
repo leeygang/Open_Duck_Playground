@@ -1,0 +1,10 @@
+<sensor>
+    <!-- Hardware capability-->
+    <gyro site="left_leg_imu" name="left_leg_gyro"/>
+    <accelerometer site="left_leg_imu" name="left_leg_accelerometer"/>
+
+    <!-- Read from simulator -->
+  
+    <framelinvel objtype="site" objname="left_leg_imu" name="left_leg_global_linvel"/>
+    <frameangvel objtype="site" objname="left_leg_imu" name="left_leg_global_angvel" />
+</sensor>
