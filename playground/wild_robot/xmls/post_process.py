@@ -2,9 +2,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 import sys
 
-def add_collision_names(root: ET.ElementTree):    
-    #tree = ET.parse(xml_file)
-    #root = tree.getroot()
+def add_collision_names(xml_file):    
+    tree = ET.parse(xml_file)
+    root = tree.getroot()
     # Find left_foot body and its foot_btm_front collision geom
     for body in root.findall(".//body[@name='left_foot']"):
         for geom in body.findall("geom[@mesh='foot_btm_front'][@class='collision']"):
@@ -19,14 +19,23 @@ def add_collision_names(root: ET.ElementTree):
         for geom in body.findall("geom[@mesh='foot_btm_back'][@class='collision']"):
             geom.set('name', 'right_foot_btm_back')
     
+    ET.indent(tree, space="  ", level=0)
+    tree.write(xml_file)
+    
 
-def add_floating_base_parent(root: ET.ElementTree):    
+def add_floating_base_parent(xml_file):    
+    tree = ET.parse(xml_file)
+    root = tree.getroot()
     # Find the worldbody element
     worldbody = root.find("worldbody")
     if worldbody is None:
         print("No worldbody found")
         return
     
+    if worldbody.find("body[@name='base']") is not None:
+        print("found base body, no need to update")
+        return
+
     # Find the waist body
     waist = worldbody.find("body[@name='waist']")
     if waist is None:
@@ -50,28 +59,23 @@ def add_floating_base_parent(root: ET.ElementTree):
     # Create freejoint element
     freejoint = ET.Element("freejoint")
     freejoint.set("name", "floating_base")
-    
     # Add freejoint to base body
     base_body.append(freejoint)
-    
     # Add waist as child of base body
     base_body.append(waist)
-    
     # Add base body to worldbody
     worldbody.append(base_body)
+    ET.indent(tree, space="  ", level=0)
+    tree.write(xml_file)
 
 
 def main() -> None:
     xml_file = "wild_robot.xml"
     print("start post process...")
-    tree = ET.parse(xml_file)
-    root = tree.getroot()
-    add_collision_names(root)
-    root = tree.getroot()
-    add_floating_base_parent(root)
+    add_collision_names(xml_file)
+    add_floating_base_parent(xml_file)
     print("Post process completed")
-    ET.indent(tree, space="  ", level=0)
-    tree.write(xml_file)
+
 
 
 if __name__ == "__main__":
