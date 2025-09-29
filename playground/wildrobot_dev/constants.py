@@ -29,11 +29,12 @@ def task_to_xml(task_name: str) -> epath.Path:
     }[task_name]
 
 
+# used to training debug info.
 FEET_SITES = [
-    "left_foot_front",
-    "left_foot_back",
+    "left_foot_site",
 ]
 
+# Used for contact
 LEFT_FEET_GEOMS = [
     "left_foot_btm_front",
     "left_foot_btm_back",

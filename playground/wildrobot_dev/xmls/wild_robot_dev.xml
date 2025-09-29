@@ -15,6 +15,7 @@
   <sensor>
     <gyro site="left_leg_imu" name="left_leg_gyro" />
     <accelerometer site="left_leg_imu" name="left_leg_accelerometer" />
+    <framelinvel objtype="site" objname="left_foot_site" name="left_foot_site_global_linvel" />
     <framelinvel objtype="site" objname="left_leg_imu" name="left_leg_global_linvel" />
     <frameangvel objtype="site" objname="left_leg_imu" name="left_leg_global_angvel" />
   </sensor>
@@ -74,6 +75,7 @@
               <geom type="mesh" class="collision" pos="-0.0128254 0.000185294 0.0255108" quat="0.499502 0.500498 0.499915 0.500085" mesh="foot_main" material="foot_main_material" />
               <geom type="mesh" class="visual" pos="-0.0125255 0.00118539 0.0254289" quat="0.499502 0.500498 0.499915 0.500085" mesh="foot_btm_front" material="foot_btm_front_material" />
               <geom type="mesh" class="collision" pos="-0.0125255 0.00118539 0.0254289" quat="0.499502 0.500498 0.499915 0.500085" mesh="foot_btm_front" material="foot_btm_front_material" name="left_foot_btm_front" />
+              <site group="3" name="left_foot_site" pos="-0.0294391 -0.00926314 0.00899012" quat="0.500498 -0.499502 -0.500085 0.499915" />
             </body>
           </body>
         </body>
@@ -81,21 +83,21 @@
     </body>
   </worldbody>
   <asset>
-    <mesh file="foot_side.stl" />
     <mesh file="up_leg.stl" />
-    <mesh file="servo_bracket_btm.stl" />
-    <mesh file="low_leg_left.stl" />
-    <mesh file="servo_bracket_top.stl" />
-    <mesh file="foot_btm_front.stl" />
-    <mesh file="foot_main.stl" />
     <mesh file="knee_ball_mid.stl" />
-    <mesh file="btm_servo_support.stl" />
-    <mesh file="knee_ball_right.stl" />
-    <mesh file="knee_ball_left.stl" />
-    <mesh file="htd_45h_1circle.stl" />
-    <mesh file="foot_btm_back.stl" />
-    <mesh file="low_leg_right.stl" />
     <mesh file="up_leg_servo_connect.stl" />
+    <mesh file="btm_servo_support.stl" />
+    <mesh file="low_leg_right.stl" />
+    <mesh file="servo_bracket_top.stl" />
+    <mesh file="htd_45h_1circle.stl" />
+    <mesh file="knee_ball_left.stl" />
+    <mesh file="low_leg_left.stl" />
+    <mesh file="servo_bracket_btm.stl" />
+    <mesh file="foot_main.stl" />
+    <mesh file="foot_side.stl" />
+    <mesh file="foot_btm_back.stl" />
+    <mesh file="knee_ball_right.stl" />
+    <mesh file="foot_btm_front.stl" />
     <material name="up_leg_servo_connect_material" rgba="0.615686 0.811765 0.929412 1" />
     <material name="knee_ball_left_material" rgba="0.231373 0.380392 0.705882 1" />
     <material name="knee_ball_mid_material" rgba="0.231373 0.380392 0.705882 1" />

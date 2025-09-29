@@ -128,6 +128,7 @@ class Standing(wild_robot_base.WildRobotEnv):
 
     def _post_init(self) -> None:
         print("[DEV START]_post_init")
+
         self._init_q = jp.array(self._mj_model.keyframe("home").qpos)
         self._default_actuator = self._mj_model.keyframe(
             "home"
@@ -150,21 +151,41 @@ class Standing(wild_robot_base.WildRobotEnv):
         self._torso_mass = self._mj_model.body_subtreemass[self._torso_body_id]
         self._site_id = self._mj_model.site(constants.TRUNK_IMU).id
 
-        # TODO: 
-        # self._feet_site_id = np.array(
-        #     [self._mj_model.site(name).id for name in constants.FEET_SITES]
-        # )
+        self._feet_site_id = np.array(
+            [self._mj_model.site(name).id for name in constants.FEET_SITES]
+        )
         self._floor_geom_id = self._mj_model.geom("floor").id
         self._feet_geom_id = np.array(
             [self._mj_model.geom(name).id for name in constants.FEET_GEOMS]
         )
 
         # foot sensor for debug
-        #TODO: deleted
+        foot_linvel_sensor_adr = []
+        for site in constants.FEET_SITES:
+            sensor_id = self._mj_model.sensor(f"{site}_global_linvel").id
+            sensor_adr = self._mj_model.sensor_adr[sensor_id]
+            sensor_dim = self._mj_model.sensor_dim[sensor_id]
+            foot_linvel_sensor_adr.append(
+                list(range(sensor_adr, sensor_adr + sensor_dim))
+            )
+        self._foot_linvel_sensor_adr = jp.array(foot_linvel_sensor_adr)
 
         # noise in the simu?
         qpos_noise_scale = np.zeros(self._actuators)
-        #TODO: deleted
+
+        hip_ids = [
+            idx for idx, j in enumerate(constants.JOINTS_ORDER_NO_HEAD) if "_hip" in j
+        ]
+        knee_ids = [
+            idx for idx, j in enumerate(constants.JOINTS_ORDER_NO_HEAD) if "_knee" in j
+        ]
+        ankle_ids = [
+            idx for idx, j in enumerate(constants.JOINTS_ORDER_NO_HEAD) if "_ankle" in j or "_foot" in j
+        ]
+
+        qpos_noise_scale[hip_ids] = self._config.noise_config.scales.hip_pos
+        qpos_noise_scale[knee_ids] = self._config.noise_config.scales.knee_pos
+        qpos_noise_scale[ankle_ids] = self._config.noise_config.scales.ankle_pos
         self._qpos_noise_scale = jp.array(qpos_noise_scale)
         print("[DEV END]_post_init")
 
