@@ -27,8 +27,8 @@ import sys
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.collision import geoms_colliding
 
-from . import constants
-from . import base as wild_robot_base
+from playground.wildrobot_dev import constants
+from playground.wildrobot_dev import base as wild_robot_base
 from playground.common.poly_reference_motion import PolyReferenceMotion
 from playground.common.rewards import (
     cost_orientation,

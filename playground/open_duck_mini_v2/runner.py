@@ -9,6 +9,7 @@ from playground.open_duck_mini_v2 import joystick, standing
 # from jax import config
 # config.update("jax_disable_jit", True)
 
+
 class OpenDuckMiniV2Runner(BaseRunner):
 
     def __init__(self, args):
@@ -44,7 +45,7 @@ def main() -> None:
     )
     # parser.add_argument("--num_timesteps", type=int, default=300000000)
     parser.add_argument("--num_timesteps", type=int, default=150000000)
-    parser.add_argument("--env", type=str, default="joystick", help="env")
+    parser.add_argument("--env", type=str, default="standing", help="env")
     parser.add_argument("--task", type=str, default="flat_terrain", help="Task to run")
     parser.add_argument(
         "--restore_checkpoint_path",

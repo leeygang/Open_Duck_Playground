@@ -25,7 +25,7 @@ import mujoco
 from mujoco import mjx
 
 from mujoco_playground._src import mjx_env
-from . import constants
+from playground.wildrobot_dev import constants
 
 
 def get_assets() -> Dict[str, bytes]:

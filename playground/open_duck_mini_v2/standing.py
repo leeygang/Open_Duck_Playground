@@ -213,7 +213,7 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
 
     def reset(self, rng: jax.Array) -> mjx_env.State:
         qpos = self._init_q  # the complete qpos
-        print(f'DEBUG0 init qpos: {qpos}')
+        # print(f'DEBUG0 init qpos: {qpos}')
         qvel = jp.zeros(self.mjx_model.nv)
 
         # init position/orientation in environment
@@ -241,7 +241,7 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
         qpos = self.set_floating_base_qpos(base_qpos, qpos)
         # print(f'DEBUG1 base qpos: {list(qpos)}')
         #with jax.disable_jit():
-        print_jax_array(qpos)
+        #print_jax_array(qpos)
         # init joint position
         # qpos[7:]=*U(0.0, 0.1)
         rng, key = jax.random.split(rng)

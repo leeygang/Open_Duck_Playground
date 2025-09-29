@@ -48,18 +48,18 @@
         <body name="lower_leg" pos="0.0635333 -0.0501252 -0.219124" quat="0.477819 0.520419 0.478215 0.521693">
           <joint axis="0 0 1" name="left_knee" type="hinge" range="-0.3490658503988667 1.22173047639603" class="lobotServo" />
           <inertial pos="-0.000521354 -0.101401 0.0270617" mass="0.380663" fullinertia="0.00177714 0.000669988 0.00168908 1.88914e-05 3.0835e-08 -3.5834e-05" />
-          <geom type="mesh" class="visual" pos="-1.99623e-15 0.192752 -0.0677579" quat="0.5 -0.5 -0.5 -0.5" mesh="low_leg_right" material="low_leg_right_material" />
-          <geom type="mesh" class="collision" pos="-1.99623e-15 0.192752 -0.0677579" quat="0.5 -0.5 -0.5 -0.5" mesh="low_leg_right" material="low_leg_right_material" />
-          <geom type="mesh" class="visual" pos="-3.39572e-16 0.192752 -0.0677579" quat="0.5 -0.5 -0.5 -0.5" mesh="low_leg_left" material="low_leg_left_material" />
-          <geom type="mesh" class="collision" pos="-3.39572e-16 0.192752 -0.0677579" quat="0.5 -0.5 -0.5 -0.5" mesh="low_leg_left" material="low_leg_left_material" />
-          <geom type="mesh" class="visual" pos="0.0596393 -0.173769 0.0526109" quat="1.31858e-14 -1.45413e-15 -1 0.000164358" mesh="htd_45h_1circle" material="htd_45h_1circle_material" />
+          <geom type="mesh" class="visual" pos="-2.01228e-15 0.192752 -0.0677579" quat="0.5 -0.5 -0.5 -0.5" mesh="low_leg_right" material="low_leg_right_material" />
+          <geom type="mesh" class="collision" pos="-2.01228e-15 0.192752 -0.0677579" quat="0.5 -0.5 -0.5 -0.5" mesh="low_leg_right" material="low_leg_right_material" />
+          <geom type="mesh" class="visual" pos="-3.60822e-16 0.192752 -0.0677579" quat="0.5 -0.5 -0.5 -0.5" mesh="low_leg_left" material="low_leg_left_material" />
+          <geom type="mesh" class="collision" pos="-3.60822e-16 0.192752 -0.0677579" quat="0.5 -0.5 -0.5 -0.5" mesh="low_leg_left" material="low_leg_left_material" />
+          <geom type="mesh" class="visual" pos="0.0596393 -0.173769 0.0526109" quat="1.29896e-14 -1.45382e-15 -1 0.000164358" mesh="htd_45h_1circle" material="htd_45h_1circle_material" />
           <body name="left_ankle" pos="-4.74705e-05 -0.179984 0.000442075" quat="0.999048 0.000564473 0.000438249 -0.0436191">
             <joint axis="0 0 1" name="left_ankle" type="hinge" range="-0.4363323486443026 0.610865202552295" class="lobotServo" />
             <inertial pos="-0.000778386 -0.0291765 0.0259275" mass="0.0230191" fullinertia="1.34186e-05 1.32703e-05 1.41853e-05 -1.80568e-07 1.56329e-08 2.24395e-07" />
-            <geom type="mesh" class="visual" pos="1.16931e-16 -0.0722 0.0268" quat="0.5 -0.5 -0.5 -0.5" mesh="servo_bracket_btm" material="servo_bracket_btm_material" />
-            <geom type="mesh" class="collision" pos="1.16931e-16 -0.0722 0.0268" quat="0.5 -0.5 -0.5 -0.5" mesh="servo_bracket_btm" material="servo_bracket_btm_material" />
-            <geom type="mesh" class="visual" pos="-7.42678e-18 -0.0732 0.0268" quat="0.5 -0.5 -0.5 -0.5" mesh="servo_bracket_top" material="servo_bracket_top_material" />
-            <geom type="mesh" class="collision" pos="-7.42678e-18 -0.0732 0.0268" quat="0.5 -0.5 -0.5 -0.5" mesh="servo_bracket_top" material="servo_bracket_top_material" />
+            <geom type="mesh" class="visual" pos="1.17961e-16 -0.0722 0.0268" quat="0.5 -0.5 -0.5 -0.5" mesh="servo_bracket_btm" material="servo_bracket_btm_material" />
+            <geom type="mesh" class="collision" pos="1.17961e-16 -0.0722 0.0268" quat="0.5 -0.5 -0.5 -0.5" mesh="servo_bracket_btm" material="servo_bracket_btm_material" />
+            <geom type="mesh" class="visual" pos="-6.93889e-18 -0.0732 0.0268" quat="0.5 -0.5 -0.5 -0.5" mesh="servo_bracket_top" material="servo_bracket_top_material" />
+            <geom type="mesh" class="collision" pos="-6.93889e-18 -0.0732 0.0268" quat="0.5 -0.5 -0.5 -0.5" mesh="servo_bracket_top" material="servo_bracket_top_material" />
             <body name="left_foot" pos="-0.0268 -0.0594 0.0268" quat="0.499992 0.500008 0.499992 0.500008">
               <joint axis="0 0 1" name="left_foot" type="hinge" range="-0.34909746539659237 0.3490342354011394" class="lobotServo" />
               <inertial pos="-0.0183724 -0.00183883 0.00908575" mass="0.413618" fullinertia="0.00096407 0.00073874 0.0003209 1.74031e-05 -2.95872e-05 1.47775e-05" />
@@ -81,18 +81,18 @@
     </body>
   </worldbody>
   <asset>
-    <mesh file="foot_main.stl" />
-    <mesh file="knee_ball_mid.stl" />
-    <mesh file="htd_45h_1circle.stl" />
-    <mesh file="up_leg.stl" />
-    <mesh file="up_leg_servo_connect.stl" />
-    <mesh file="low_leg_left.stl" />
-    <mesh file="foot_side.stl" />
-    <mesh file="foot_btm_front.stl" />
-    <mesh file="knee_ball_left.stl" />
-    <mesh file="foot_btm_back.stl" />
-    <mesh file="servo_bracket_top.stl" />
     <mesh file="btm_servo_support.stl" />
+    <mesh file="foot_side.stl" />
+    <mesh file="knee_ball_left.stl" />
+    <mesh file="servo_bracket_top.stl" />
+    <mesh file="htd_45h_1circle.stl" />
+    <mesh file="up_leg_servo_connect.stl" />
+    <mesh file="up_leg.stl" />
+    <mesh file="low_leg_left.stl" />
+    <mesh file="foot_main.stl" />
+    <mesh file="foot_btm_front.stl" />
+    <mesh file="foot_btm_back.stl" />
+    <mesh file="knee_ball_mid.stl" />
     <mesh file="low_leg_right.stl" />
     <mesh file="servo_bracket_btm.stl" />
     <mesh file="knee_ball_right.stl" />
