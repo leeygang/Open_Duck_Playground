@@ -415,30 +415,24 @@ class Standing(wild_robot_base.WildRobotEnv):
         self, data: mjx.Data, info: dict[str, Any], contact: jax.Array
     ) -> mjx_env.Observation:
         print("[DEV START] _get_obs")
-        print("[DEV END] _get_obs early end")
-        state = jp.zeros(3)
-        ps = jp.zeros(9)
-        return {
-            "state": state,
-            "privileged_state": ps}
         
-        # gyros = self.get_gyros(data)
-        # info["rng"], noise_rng = jax.random.split(info["rng"])
-        # noisy_gyros = (
-        #     gyros
-        #     + (2 * jax.random.uniform(noise_rng, shape=gyros.shape) - 1)
-        #     * self._config.noise_config.level
-        #     * self._config.noise_config.scales.gyro
-        # )
+        gyros = self.get_gyros(data)
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_gyros = (
+            gyros
+            + (2 * jax.random.uniform(noise_rng, shape=gyros.shape) - 1)
+            * self._config.noise_config.level
+            * self._config.noise_config.scales.gyro
+        )
 
-        # accelerometers = self.get_accelerometers(data)
-        # info["rng"], noise_rng = jax.random.split(info["rng"])
-        # noisy_accelerometers = (
-        #     accelerometers
-        #     + (2 * jax.random.uniform(noise_rng, shape=accelerometers.shape) - 1)
-        #     * self._config.noise_config.level
-        #     * self._config.noise_config.scales.accelerometer
-        # )
+        accelerometers = self.get_accelerometers(data)
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_accelerometers = (
+            accelerometers
+            + (2 * jax.random.uniform(noise_rng, shape=accelerometers.shape) - 1)
+            * self._config.noise_config.level
+            * self._config.noise_config.scales.accelerometer
+        )
 
         
         #magnet = self.get_magnet(data)
@@ -478,8 +472,8 @@ class Standing(wild_robot_base.WildRobotEnv):
 
         state = jp.hstack(
             [
-                #noisy_gyros,  # 9 (3 IMU)
-                #noisy_accelerometers,  # 9 (3 IMU)
+                noisy_gyros,  # 9 (3 IMU)
+                noisy_accelerometers,  # 9 (3 IMU)
                 #noisy_magnet, # 3
                 info["command"],  # 3
                 noisy_joint_angles - self._default_actuator,  # 10
@@ -513,13 +507,6 @@ class Standing(wild_robot_base.WildRobotEnv):
         noisy_gravity = imu_history.reshape((-1, 3))[imu_idx[0]]
 
         linvel = self.get_local_linvel(data)
-        # info["rng"], noise_rng = jax.random.split(info["rng"])
-        # noisy_linvel = (
-        #     linvel
-        #     + (2 * jax.random.uniform(noise_rng, shape=linvel.shape) - 1)
-        #     * self._config.noise_config.level
-        #     * self._config.noise_config.scales.linvel
-        # )
         global_angvel = self.get_global_angvel(data)
         feet_vel = data.sensordata[self._foot_linvel_sensor_adr].ravel()
         root_height = data.qpos[self._floating_base_qpos_addr + 2]
@@ -527,8 +514,8 @@ class Standing(wild_robot_base.WildRobotEnv):
         privileged_state = jp.hstack(
             [
                 state,
-                #gyros,  # 9
-                #accelerometers,  # 9
+                gyros,  # 9
+                accelerometers,  # 9
                 gravity,  # 3
                 linvel,  # 3
                 global_angvel,  # 3

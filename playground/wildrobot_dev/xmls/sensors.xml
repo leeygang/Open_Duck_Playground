@@ -4,6 +4,10 @@
     <accelerometer site="left_leg_imu" name="left_leg_accelerometer"/>
 
     <!-- Read from simulator -->
+    <!-- TODO update-->
+    <velocimeter site="left_leg_imu" name="local_linvel"/>
+    <framelinvel objtype="site" objname="left_leg_imu" name="global_linvel"/>
+    <frameangvel objtype="site" objname="left_leg_imu" name="global_angvel"/>
     <framelinvel objtype="site" objname="left_foot_site" name="left_foot_site_global_linvel"/>
     <framelinvel objtype="site" objname="left_leg_imu" name="left_leg_global_linvel"/>
     <frameangvel objtype="site" objname="left_leg_imu" name="left_leg_global_angvel" />
