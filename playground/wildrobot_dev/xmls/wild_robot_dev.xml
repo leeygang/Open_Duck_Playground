@@ -78,21 +78,21 @@
     </body>
   </worldbody>
   <asset>
-    <mesh file="low_leg_right.stl" />
-    <mesh file="servo_bracket_top.stl" />
-    <mesh file="knee_ball_right.stl" />
-    <mesh file="low_leg_left.stl" />
-    <mesh file="btm_servo_support.stl" />
-    <mesh file="foot_side.stl" />
-    <mesh file="foot_main.stl" />
-    <mesh file="htd_45h_1circle.stl" />
     <mesh file="up_leg_servo_connect.stl" />
-    <mesh file="knee_ball_mid.stl" />
-    <mesh file="servo_bracket_btm.stl" />
-    <mesh file="up_leg.stl" />
-    <mesh file="knee_ball_left.stl" />
-    <mesh file="foot_btm_front.stl" />
+    <mesh file="low_leg_right.stl" />
+    <mesh file="low_leg_left.stl" />
     <mesh file="foot_btm_back.stl" />
+    <mesh file="servo_bracket_top.stl" />
+    <mesh file="foot_btm_front.stl" />
+    <mesh file="servo_bracket_btm.stl" />
+    <mesh file="foot_side.stl" />
+    <mesh file="knee_ball_right.stl" />
+    <mesh file="foot_main.stl" />
+    <mesh file="up_leg.stl" />
+    <mesh file="htd_45h_1circle.stl" />
+    <mesh file="knee_ball_mid.stl" />
+    <mesh file="btm_servo_support.stl" />
+    <mesh file="knee_ball_left.stl" />
     <material name="up_leg_servo_connect_material" rgba="0.615686 0.811765 0.929412 1" />
     <material name="knee_ball_left_material" rgba="0.231373 0.380392 0.705882 1" />
     <material name="knee_ball_mid_material" rgba="0.231373 0.380392 0.705882 1" />
