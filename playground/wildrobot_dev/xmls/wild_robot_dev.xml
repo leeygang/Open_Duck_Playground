@@ -1,5 +1,9 @@
 <mujoco model="wild_robot_dev">
-  <compiler angle="radian" meshdir="assets" autolimits="true" />
+  <option iterations="1" ls_iterations="5">
+    <flag eulerdamp="disable"/>
+  </option>
+  <compiler angle="radian" meshdir="assets"/>
+
   <default>
     <default class="wild_robot_dev">
       <joint frictionloss="0.1" armature="0.005" />

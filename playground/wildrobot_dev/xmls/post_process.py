@@ -2,6 +2,25 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 import sys
 
+
+def add_option(xml_file):
+    tree = ET.parse(xml_file)
+    root = tree.getroot()
+    option = root.find("option")
+    if option is None:
+        option = ET.Element("option")
+        root.insert(0, option)  # Insert at the beginning
+    
+    eulerdamp_flag = option.find("flag[@eulerdamp='disable']")
+    if eulerdamp_flag is None:
+        flag = ET.Element("flag")
+        flag.set("eulerdamp", "disable")
+        option.append(flag)
+    
+    ET.indent(tree, space="  ", level=0)
+    tree.write(xml_file)
+
+
 def add_collision_names(xml_file):    
     tree = ET.parse(xml_file)
     root = tree.getroot()
@@ -74,6 +93,7 @@ def main() -> None:
     print("start post process...")
     add_collision_names(xml_file)
     add_floating_base_parent(xml_file)
+    add_option(xml_file)
     print("Post process completed")
 
 
