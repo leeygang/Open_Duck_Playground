@@ -28,11 +28,11 @@ from mujoco_playground._src import mjx_env
 from playground.wildrobot_dev import constants
 
 
-def get_assets() -> Dict[str, bytes]:
+def get_assets(root_path: str) -> Dict[str, bytes]:
     assets = {}
-    mjx_env.update_assets(assets, constants.ROOT_PATH / "xmls", "*.xml")
-    mjx_env.update_assets(assets, constants.ROOT_PATH / "xmls" / "assets")
-    path = constants.ROOT_PATH
+    mjx_env.update_assets(assets, root_path / "xmls", "*.xml")
+    mjx_env.update_assets(assets, root_path / "xmls" / "assets")
+    path = root_path
     mjx_env.update_assets(assets, path, "*.xml")
     mjx_env.update_assets(assets, path / "assets")
     return assets
@@ -43,15 +43,18 @@ class WildRobotEnv(mjx_env.MjxEnv):
 
     def __init__(
         self,
-        xml_path: str,
+        task: str,
         config: config_dict.ConfigDict,
         config_overrides: Optional[Dict[str, Union[str, int, list[Any]]]] = None,
     ) -> None:
         super().__init__(config, config_overrides)
-
+        xml_path=constants.task_to_xml(task).as_posix()
+        self.task = task
+        self.robot_config = constants.ROBOT_CONFIGS[task]
         print(f"xml: {xml_path}")
+        root_path = epath.Path(xml_path).parent
         self._mj_model = mujoco.MjModel.from_xml_string(
-            epath.Path(xml_path).read_text(), assets=get_assets()
+            epath.Path(xml_path).read_text(), assets=get_assets(root_path)
         )
         self._mj_model.opt.timestep = self.sim_dt
 
@@ -237,30 +240,30 @@ class WildRobotEnv(mjx_env.MjxEnv):
     
     def get_gravity(self, data: mjx.Data) -> jax.Array:
         """Return the gravity vector in the world frame."""
-        return mjx_env.get_sensor_data(self.mj_model, data, constants.GRAVITY_SENSOR)
+        return mjx_env.get_sensor_data(self.mj_model, data, self.robot_config.gravity_sensor)
 
 
     def get_global_angvel(self, data: mjx.Data) -> jax.Array:
         """Return the angular velocity of the robot in the world frame."""
         return mjx_env.get_sensor_data(
-            self.mj_model, data, constants.GLOBAL_ANGVEL_SENSOR
+            self.mj_model, data, self.robot_config.global_angvel_sensor
         )
 
     def get_local_linvel(self, data: mjx.Data) -> jax.Array:
         """Return the linear velocity of the robot in the local frame."""
         return mjx_env.get_sensor_data(
-            self.mj_model, data, constants.LOCAL_LINVEL_SENSOR
+            self.mj_model, data, self.robot_config.local_linvel_sensor
         )
 
     def get_accelerometers(self, data: mjx.Data) -> jax.Array:
         """Return the accelerometer readings in the local frame."""
-        acc_vecs = [mjx_env.get_sensor_data(self.mj_model, data, name) for name in constants.SENSOR_ACCELEROMETER]
+        acc_vecs = [mjx_env.get_sensor_data(self.mj_model, data, name) for name in self.robot_config.accelerometer_sensors]
         return jp.concatenate(acc_vecs, axis=0)
 
 
     def get_gyros(self, data: mjx.Data) -> jax.Array:
         """Return the gyroscope readings in the local frame."""
-        gyro_vecs = [mjx_env.get_sensor_data(self.mj_model, data, name) for name in constants.SENSOR_GYRO]
+        gyro_vecs = [mjx_env.get_sensor_data(self.mj_model, data, name) for name in self.robot_config.gyro_sensors]
         return jp.concatenate(gyro_vecs, axis=0)
 
     # Accessors.

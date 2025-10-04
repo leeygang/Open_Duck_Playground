@@ -119,7 +119,7 @@ class Standing(wild_robot_base.WildRobotEnv):
         config_overrides: Optional[Dict[str, Union[str, int, list[Any]]]] = None,
     ):
         super().__init__(
-            xml_path=constants.task_to_xml(task).as_posix(),
+            task=task,
             config=config,
             config_overrides=config_overrides,
         )
@@ -160,25 +160,25 @@ class Standing(wild_robot_base.WildRobotEnv):
                 1.0,  # right leg.
             ]
         )
-        
+
         self._njoints = self._mj_model.njnt  # number of joints
         self._actuators = self._mj_model.nu  # number of actuators
 
-        self._torso_body_id = self._mj_model.body(constants.ROOT_BODY).id
+        self._torso_body_id = self._mj_model.body(self.robot_config.root_body).id
         self._torso_mass = self._mj_model.body_subtreemass[self._torso_body_id]
-        self._site_id = self._mj_model.site(constants.TRUNK_IMU).id
+        self._site_id = self._mj_model.site(self.robot_config.trunk_imu).id
 
         self._feet_site_id = np.array(
-            [self._mj_model.site(name).id for name in constants.FEET_SITES]
+            [self._mj_model.site(name).id for name in self.robot_config.feet_sites]
         )
         self._floor_geom_id = self._mj_model.geom("floor").id
         self._feet_geom_id = np.array(
-            [self._mj_model.geom(name).id for name in constants.FEET_GEOMS]
+            [self._mj_model.geom(name).id for name in self.robot_config.feet_geoms]
         )
 
         # foot sensor for debug
         foot_linvel_sensor_adr = []
-        for site in constants.FEET_SITES:
+        for site in self.robot_config.feet_sites:
             sensor_id = self._mj_model.sensor(f"{site}_global_linvel").id
             sensor_adr = self._mj_model.sensor_adr[sensor_id]
             sensor_dim = self._mj_model.sensor_dim[sensor_id]
@@ -191,13 +191,13 @@ class Standing(wild_robot_base.WildRobotEnv):
         qpos_noise_scale = np.zeros(self._actuators)
 
         hip_ids = [
-            idx for idx, j in enumerate(constants.JOINTS_ORDER_NO_HEAD) if "_hip" in j
+            idx for idx, j in enumerate(self.robot_config.joints_order_no_head) if "_hip" in j
         ]
         knee_ids = [
-            idx for idx, j in enumerate(constants.JOINTS_ORDER_NO_HEAD) if "_knee" in j
+            idx for idx, j in enumerate(self.robot_config.joints_order_no_head) if "_knee" in j
         ]
         ankle_ids = [
-            idx for idx, j in enumerate(constants.JOINTS_ORDER_NO_HEAD) if "_ankle" in j or "_foot" in j
+            idx for idx, j in enumerate(self.robot_config.joints_order_no_head) if "_ankle" in j or "_foot" in j
         ]
 
         qpos_noise_scale[hip_ids] = self._config.noise_config.scales.hip_pos
@@ -378,9 +378,9 @@ class Standing(wild_robot_base.WildRobotEnv):
         )
 
         t1 = time.perf_counter() 
-        print(f"[STEP] start mjx_env.step, time used {t1 - start_time: .3f} ms")
+        print(f"[STEP] start mjx_env.step, time used {t1 - start_time: .3f} s")
         data = mjx_env.step(self.mjx_model, state.data, motor_targets, self.n_substeps)
-        print(f"[STEP] complete mjx_env.step, time used {time.perf_counter() -  t1: .3f} ms")
+        print(f"[STEP] complete mjx_env.step, time used {time.perf_counter() -  t1: .3f} s")
 
         state.info["motor_targets"] = motor_targets
 

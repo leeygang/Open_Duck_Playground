@@ -1,7 +1,8 @@
 import jax, jax.numpy as jp
 from playground.wildrobot_dev import standing
 
-env = standing.Standing(task="flat_terrain")
+task = "wildrobot_terrain"
+env = standing.Standing(task=task)
 rng = jax.random.PRNGKey(0)
 rng, reset_rng = jax.random.split(rng)
 state = env.reset(reset_rng)
