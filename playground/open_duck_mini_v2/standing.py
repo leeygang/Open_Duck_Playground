@@ -23,6 +23,7 @@ from mujoco import mjx
 from mujoco.mjx._src import math
 import numpy as np
 import sys
+import time
 
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.collision import geoms_colliding
@@ -212,6 +213,9 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
         self._qpos_noise_scale = jp.array(qpos_noise_scale)
 
     def reset(self, rng: jax.Array) -> mjx_env.State:
+        print("[DEV START]reset....")
+        start_time = time.perf_counter()
+
         qpos = self._init_q  # the complete qpos
         # print(f'DEBUG0 init qpos: {qpos}')
         qvel = jp.zeros(self.mjx_model.nv)
@@ -264,8 +268,13 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
         )
         # print(f'DEBUG3 base qvel: {qvel}')
         ctrl = self.get_actuator_joints_qpos(qpos)
-        # print(f'DEBUG4 ctrl: {ctrl}')
+        
+        
+        t1 = time.perf_counter()
+        print(f"[RESET]mjx_env.init starts")
         data = mjx_env.init(self.mjx_model, qpos=qpos, qvel=qvel, ctrl=ctrl)
+        print(f"mjx_env.init ends {time.perf_counter() - t1} s")
+        
         rng, cmd_rng = jax.random.split(rng)
         cmd = self.sample_command(cmd_rng)
 
@@ -327,9 +336,13 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
         )
         obs = self._get_obs(data, info, contact)
         reward, done = jp.zeros(2)
+        print(f"[DEV END]reset {time.perf_counter() - start_time} s")
+
         return mjx_env.State(data, obs, reward, done, metrics, info)
 
     def step(self, state: mjx_env.State, action: jax.Array) -> mjx_env.State:
+        print("[DEV START]step....")
+        start_time = time.perf_counter()
 
         if USE_IMITATION_REWARD:
             state.info["imitation_i"] += 1
@@ -394,8 +407,12 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
         motor_targets = (
             self._default_actuator + action_w_delay * self._config.action_scale
         )
+
+        t1 = time.perf_counter()
+        print(f"[STEP] start mjx_env.step, time used {t1-start_time: .3f} s")
         data = mjx_env.step(self.mjx_model, state.data, motor_targets, self.n_substeps)
         state.info["motor_targets"] = motor_targets
+        print(f"[STEP] complete mjx_env.step, time used {time.perf_counter() - t1: .3f} s")
 
         contact = jp.array(
             [
@@ -453,6 +470,8 @@ class Standing(open_duck_mini_v2_base.OpenDuckMiniV2Env):
 
         done = done.astype(reward.dtype)
         state = state.replace(data=data, obs=obs, reward=reward, done=done)
+        print(f"[DEV END]step {time.perf_counter() - start_time} s")
+
         return state
 
     def _get_termination(self, data: mjx.Data) -> jax.Array:

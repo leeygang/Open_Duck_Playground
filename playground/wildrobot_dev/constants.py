@@ -61,6 +61,8 @@ FEET_GEOMS = LEFT_FEET_GEOMS
 
 ROOT_BODY = "upper_leg"
 TRUNK_IMU = "left_leg_imu"
+
+GRAVITY_SENSOR = "upvector"
 LOCAL_LINVEL_SENSOR = "local_linvel"
 GLOBAL_LINVEL_SENSOR = "global_linvel"
 GLOBAL_ANGVEL_SENSOR = "global_angvel"

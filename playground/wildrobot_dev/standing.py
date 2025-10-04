@@ -23,6 +23,7 @@ from mujoco import mjx
 from mujoco.mjx._src import math
 import numpy as np
 import sys
+import time
 
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.collision import geoms_colliding
@@ -52,7 +53,7 @@ USE_IMITATION_REWARD = False
 def default_config() -> config_dict.ConfigDict:
     return config_dict.create(
         ctrl_dt=0.02,
-        sim_dt=0.002,
+        sim_dt=0.008, # TODO from 0.002
         # episode_length=450,
         episode_length=1000,
         action_repeat=1,
@@ -143,7 +144,23 @@ class Standing(wild_robot_base.WildRobotEnv):
         self._soft_lowers = c - 0.5 * r * self._config.soft_joint_pos_limit_factor
         self._soft_uppers = c + 0.5 * r * self._config.soft_joint_pos_limit_factor
 
-
+        # weights for computing the cost of each joints compared to a reference pose
+        self._weights = jp.array(
+            [
+                1.0,
+                1.0,
+                0.01,
+                0.01,
+                1.0,  # left leg.
+                # 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, #head
+                1.0,
+                1.0,
+                0.01,
+                0.01,
+                1.0,  # right leg.
+            ]
+        )
+        
         self._njoints = self._mj_model.njnt  # number of joints
         self._actuators = self._mj_model.nu  # number of actuators
 
@@ -192,6 +209,7 @@ class Standing(wild_robot_base.WildRobotEnv):
 
     def reset(self, rng: jax.Array) -> mjx_env.State:
         print("[DEV START] reset")
+        start_time = time.perf_counter()
         qpos = self._init_q  # the complete qpos
         qvel = jp.zeros(self.mjx_model.nv)
 
@@ -219,6 +237,8 @@ class Standing(wild_robot_base.WildRobotEnv):
 
         qpos = self.set_floating_base_qpos(base_qpos, qpos)
         rng, key = jax.random.split(rng)
+        latency = (time.perf_counter() - start_time) * 1000  # milliseconds
+        print(f"[RESET] start reading joints qpos, time used {latency: .3f} ms")
 
         # # multiply actual joints with noise (excluding floating base and backlash)
         qpos_j = self.get_actuator_joints_qpos(qpos) * jax.random.uniform(
@@ -226,14 +246,22 @@ class Standing(wild_robot_base.WildRobotEnv):
         )
         qpos = self.set_actuator_joints_qpos(qpos_j, qpos)
         rng, key = jax.random.split(rng)
-
+        
+        latency = (time.perf_counter() - start_time) * 1000  # milliseconds
+        print(f"[RESET] start reading joints qvel, time used {latency: .3f} ms")
+        
         qvel = self.set_floating_base_qvel(
             jax.random.uniform(key, (6,), minval=-0.5, maxval=0.5), qvel
         )
+        
         # print(f'DEBUG3 base qvel: {qvel}')
         ctrl = self.get_actuator_joints_qpos(qpos)
-        # print(f'DEBUG4 ctrl: {ctrl}')
+        
+        t1 = time.perf_counter()
+        print(f"[RESET] start mjx_env.init, time used {t1 - start_time: .3f} s")
         data = mjx_env.init(self.mjx_model, qpos=qpos, qvel=qvel, ctrl=ctrl)
+        print(f"[RESET] complete mjx_env.init, time used {time.perf_counter() - t1: .3f} s")
+
         rng, cmd_rng = jax.random.split(rng)
         cmd = self.sample_command(cmd_rng)
 
@@ -272,6 +300,7 @@ class Standing(wild_robot_base.WildRobotEnv):
             "imitation_i": 0,
             "current_reference_motion": current_reference_motion,
         }
+        print("[RESET] complete info")
 
         metrics = {}
         for k, v in self._config.reward_config.scales.items():
@@ -290,13 +319,15 @@ class Standing(wild_robot_base.WildRobotEnv):
         )
         obs = self._get_obs(data, info, contact)
         reward, done = jp.zeros(2)
-        print("[DEV END]reset")
+        
+        latency = (time.perf_counter() - start_time) * 1000  # milliseconds
+        print(f"[DEV END]reset with latency {latency:.3f} ms")
         return mjx_env.State(data, obs, reward, done, metrics, info)
 
     def step(self, state: mjx_env.State, action: jax.Array) -> mjx_env.State:
         print("[DEV START]step....")
-        print("[DEV END] step debug early stop")
-        return state;
+        start_time = time.perf_counter()
+
         state.info["imitation_i"] = 0
         state.info["current_reference_motion"] = jp.zeros(0)
 
@@ -345,7 +376,12 @@ class Standing(wild_robot_base.WildRobotEnv):
         motor_targets = (
             self._default_actuator + action_w_delay * self._config.action_scale
         )
+
+        t1 = time.perf_counter() 
+        print(f"[STEP] start mjx_env.step, time used {t1 - start_time: .3f} ms")
         data = mjx_env.step(self.mjx_model, state.data, motor_targets, self.n_substeps)
+        print(f"[STEP] complete mjx_env.step, time used {time.perf_counter() -  t1: .3f} ms")
+
         state.info["motor_targets"] = motor_targets
 
         contact = jp.array(
@@ -404,7 +440,8 @@ class Standing(wild_robot_base.WildRobotEnv):
 
         done = done.astype(reward.dtype)
         state = state.replace(data=data, obs=obs, reward=reward, done=done)
-        print("step end")
+        latency = (time.perf_counter() - start_time) * 1000  # milliseconds
+        print(f"[DEV END]step {latency: .3f} ms")
         return state
 
     def _get_termination(self, data: mjx.Data) -> jax.Array:
@@ -562,11 +599,12 @@ class Standing(wild_robot_base.WildRobotEnv):
                 self._default_actuator,
                 True
             ),
-            "head_pos": cost_head_pos(
-                self.get_actuator_joints_qpos(data.qpos),
-                self.get_actuator_joints_qvel(data.qvel),
-                info["command"],
-            ),
+            # TODO
+            # "head_pos": cost_head_pos(
+            #     self.get_actuator_joints_qpos(data.qpos),
+            #     self.get_actuator_joints_qvel(data.qvel),
+            #     info["command"],
+            # ),
         }
         print("[DEV END] get_reward")
         return ret
@@ -619,10 +657,10 @@ class Standing(wild_robot_base.WildRobotEnv):
                     0.0,
                     0.0,
                     0.0,
-                    0.0, #neck_pitch,
-                    0.0, #head_pitch,
-                    0.0, #head_yaw,
-                    0.0, #head_roll,
+                    neck_pitch,
+                    head_pitch,
+                    head_yaw,
+                    head_roll,
                 ]
             ),
         )

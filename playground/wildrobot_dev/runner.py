@@ -5,9 +5,11 @@ import argparse
 from playground.common import randomize
 from playground.common.runner import BaseRunner
 from playground.wildrobot_dev import standing
+import os
 
-# from jax import config
-# config.update("jax_disable_jit", True)
+os.environ['JAX_LOG_COMPILES'] = '1'  # Add at top of runner.py
+from jax import config
+config.update("jax_disable_jit", True)
 
 class WildRobotRunner(BaseRunner):
 
@@ -33,10 +35,10 @@ class WildRobotRunner(BaseRunner):
         )  # 0: state 1: privileged_state
         self.restore_checkpoint_path = args.restore_checkpoint_path
         self.overrided_ppo_params = {
-            "num_envs": 64,
-            "unroll_length": 20,
-            "num_minibatches": 5, #1280 /256
-            "batch_size" : 256
+            "num_envs": 1,
+            "unroll_length": 4,
+            "num_minibatches": 1, #64*20 /256
+            "batch_size" : 4
         }
         print(f"Observation size: {self.obs_size}")
 
@@ -50,7 +52,7 @@ def main() -> None:
         help="Where to save the checkpoints",
     )
     # parser.add_argument("--num_timesteps", type=int, default=300000000)
-    parser.add_argument("--num_timesteps", type=int, default=15000)
+    parser.add_argument("--num_timesteps", type=int, default=1000000)
     parser.add_argument("--env", type=str, default="standing", help="env")
     parser.add_argument("--task", type=str, default="flat_terrain", help="Task to run")
     parser.add_argument(
