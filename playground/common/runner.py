@@ -2,6 +2,8 @@
 Defines a common runner between the different robots.
 Inspired from https://github.com/kscalelabs/mujoco_playground/blob/master/playground/common/runner.py
 """
+# Must be first import
+import playground.common.tb_logging  # noqa: F401
 
 from pathlib import Path
 from abc import ABC
@@ -9,9 +11,12 @@ import argparse
 import functools
 from datetime import datetime
 from flax.training import orbax_utils
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 import os
+import sys
+import time
+import logging
 from brax.training.agents.ppo import networks as ppo_networks, train as ppo
 from mujoco_playground import wrapper
 from mujoco_playground.config import locomotion_params
@@ -21,6 +26,22 @@ import jax
 from playground.common.export_onnx import export_onnx
 
 
+# Enable verbose logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),  # Print to console
+        #logging.FileHandler('training.log')  # Also save to file
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Enable JAX debugging
+# os.environ['JAX_LOG_COMPILES'] = '1'
+# os.environ['JAX_DEBUG_NANS'] = '1'
+# os.environ['JAX_DEBUG_INFS'] = '1'
+
 class BaseRunner(ABC):
     def __init__(self, args: argparse.Namespace) -> None:
         """Initialize the Runner class.
@@ -28,8 +49,8 @@ class BaseRunner(ABC):
         Args:
             args (argparse.Namespace): Command line arguments.
         """
-        print(f"args = {args}")
-        
+        logger.info(f"Initializing BaseRunner with args: {args}")
+
         self.args = args
         self.output_dir = args.output_dir
         self.output_dir = Path.cwd() / Path(self.output_dir)
@@ -45,6 +66,10 @@ class BaseRunner(ABC):
         self.restore_checkpoint_path = None
         self.overrided_ppo_params = dict()
         
+        # Timing
+        self.start_time = None
+        self.last_progress_time = None
+
         # CACHE STUFF
         os.makedirs(".tmp", exist_ok=True)
         jax.config.update("jax_compilation_cache_dir", ".tmp/jax_cache")
@@ -56,8 +81,18 @@ class BaseRunner(ABC):
         )
         os.environ["JAX_COMPILATION_CACHE_DIR"] = ".tmp/jax_cache"
 
+        logger.info("BaseRunner initialized successfully")
+
     def progress_callback(self, num_steps: int, metrics: dict) -> None:
-        print("[BASE RUNNER] progress_callback")
+        logger.info("[BASE RUNNER] progress_callback")
+        
+        current_time = time.time()
+        if self.last_progress_time is not None:
+            time_since_last = current_time - self.last_progress_time
+            logger.info(f"Time since last progress: {time_since_last:.2f}s")
+
+        logger.info(f"[PROGRESS] Step {num_steps}")
+        logger.debug(f"[PROGRESS] All metrics: {metrics}")
 
         for metric_name, metric_value in metrics.items():
             # Convert to float, but watch out for 0-dim JAX arrays
@@ -71,15 +106,19 @@ class BaseRunner(ABC):
 
     def policy_params_fn(self, current_step, make_policy, params):
         # save checkpoints
-        print("[BASE RUNNER] policy_params_fn")
+        logger.info(f"[CHECKPOINT] Saving at step {current_step}")
 
         orbax_checkpointer = ocp.PyTreeCheckpointer()
         save_args = orbax_utils.save_args_from_target(params)
         d = datetime.now().strftime("%Y_%m_%d_%H%M%S")
         path = f"{self.output_dir}/{d}_{current_step}"
-        print(f"Saving checkpoint (step: {current_step}): {path}")
+        logger.info(f"Checkpoint path: {path}")
+        
         orbax_checkpointer.save(path, params, force=True, save_args=save_args)
+        
         onnx_export_path = f"{self.output_dir}/{d}_{current_step}.onnx"
+        logger.info(f"Exporting ONNX to: {onnx_export_path}")
+        
         export_onnx(
             params,
             self.action_size,
@@ -87,8 +126,16 @@ class BaseRunner(ABC):
             self.obs_size,  # may not work
             output_path=onnx_export_path
         )
+        logger.info(f"Checkpoint and ONNX export completed")
 
     def train(self) -> None:
+        logger.info("=" * 80)
+        logger.info("STARTING TRAINING")
+        logger.info("=" * 80)
+        
+        self.start_time = time.time()
+        logger.info("Loading PPO configuration...")
+        
         self.ppo_params = locomotion_params.brax_ppo_config(
             "BerkeleyHumanoidJoystickFlatTerrain"
         )  # TODO
@@ -97,19 +144,25 @@ class BaseRunner(ABC):
         
 
         if "network_factory" in self.ppo_params:
+            logger.info("Using custom network factory")
             network_factory = functools.partial(
                 ppo_networks.make_ppo_networks, **self.ppo_params.network_factory
             )
             del self.ppo_training_params["network_factory"]
         else:
+            logger.info("Using default network factory")
             network_factory = ppo_networks.make_ppo_networks
+        
         self.ppo_training_params["num_timesteps"] = self.num_timesteps
-        print(f"PPO params: {self.ppo_training_params}")
+        logger.info(f"Base PPO params: {self.ppo_training_params}")
+        
         for k, v in self.overrided_ppo_params.items():
+            logger.info(f"Overriding {k}: {self.ppo_training_params.get(k)} -> {v}")
             self.ppo_training_params[k] = v
-        print(f"Updated PPO params: {self.ppo_training_params}")
 
+        logger.info(f"Final PPO params: {self.ppo_training_params}")
 
+        logger.info("Creating training function...")
         train_fn = functools.partial(
             ppo.train,
             **self.ppo_training_params,
@@ -119,9 +172,31 @@ class BaseRunner(ABC):
             policy_params_fn=self.policy_params_fn,
             restore_checkpoint_path=self.restore_checkpoint_path,
         )
-        print("[BASE RUNNER] start training")
-        _, params, _ = train_fn(
-            environment=self.env,
-            eval_env=self.eval_env,
-            wrap_env_fn=wrapper.wrap_for_brax_training,
-        )
+        
+        logger.info("=" * 80)
+        logger.info("STARTING JAX COMPILATION (this may take several minutes)...")
+        logger.info("=" * 80)
+
+        compilation_start = time.time()
+
+        try:
+            _, params, _ = train_fn(
+                environment=self.env,
+                eval_env=self.eval_env,
+                wrap_env_fn=wrapper.wrap_for_brax_training,
+            )
+
+            total_time = time.time() - self.start_time
+            compilation_time = time.time() - compilation_start
+            
+            logger.info("=" * 80)
+            logger.info("TRAINING COMPLETED SUCCESSFULLY")
+            logger.info(f"Total time: {total_time:.2f}s")
+            logger.info(f"Compilation time: {compilation_time:.2f}s")
+            logger.info("=" * 80)
+        except Exception as e:
+            logger.error("=" * 80)
+            logger.error("TRAINING FAILED")
+            logger.error(f"Error: {e}")
+            logger.error("=" * 80)
+            raise

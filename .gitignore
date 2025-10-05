@@ -12,3 +12,4 @@ checkpoints/
 .venv/
 .vscode/
 .DS_Store
+runs/

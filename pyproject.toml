@@ -18,6 +18,11 @@ dependencies = [
     "tf2onnx>=1.16.1",
     "onshape-to-robot",
     "pymeshlab",
+    "numpy==1.26.4",
+    "tensorboard>=2.18.0",
+    "torch>=2.8.0",
+    "torchvision>=0.23.0",
+    "torchaudio>=2.8.0",
 ]
 
 [project.optional-dependencies]
