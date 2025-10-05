@@ -128,7 +128,7 @@ class Standing(wild_robot_base.WildRobotEnv):
 
 
     def _post_init(self) -> None:
-        print("[DEV START]_post_init")
+        print("[_post_init START]_post_init")
 
         self._init_q = jp.array(self._mj_model.keyframe("home").qpos)
         self._default_actuator = self._mj_model.keyframe(
@@ -204,11 +204,11 @@ class Standing(wild_robot_base.WildRobotEnv):
         qpos_noise_scale[knee_ids] = self._config.noise_config.scales.knee_pos
         qpos_noise_scale[ankle_ids] = self._config.noise_config.scales.ankle_pos
         self._qpos_noise_scale = jp.array(qpos_noise_scale)
-        print("[DEV END]_post_init")
+        print("[_post_init  END]_post_init")
 
 
     def reset(self, rng: jax.Array) -> mjx_env.State:
-        print("[DEV START] reset")
+        print("[RESET START] reset")
         start_time = time.perf_counter()
         qpos = self._init_q  # the complete qpos
         qvel = jp.zeros(self.mjx_model.nv)
@@ -321,11 +321,11 @@ class Standing(wild_robot_base.WildRobotEnv):
         reward, done = jp.zeros(2)
         
         latency = (time.perf_counter() - start_time) * 1000  # milliseconds
-        print(f"[DEV END]reset with latency {latency:.3f} ms")
+        print(f"[RESET END]reset with latency {latency:.3f} ms")
         return mjx_env.State(data, obs, reward, done, metrics, info)
 
     def step(self, state: mjx_env.State, action: jax.Array) -> mjx_env.State:
-        print("[DEV START]step....")
+        print("[STEP START]step....")
         start_time = time.perf_counter()
 
         state.info["imitation_i"] = 0
@@ -441,7 +441,7 @@ class Standing(wild_robot_base.WildRobotEnv):
         done = done.astype(reward.dtype)
         state = state.replace(data=data, obs=obs, reward=reward, done=done)
         latency = (time.perf_counter() - start_time) * 1000  # milliseconds
-        print(f"[DEV END]step {latency: .3f} ms")
+        print(f"[STEP END]step {latency: .3f} ms")
         return state
 
     def _get_termination(self, data: mjx.Data) -> jax.Array:
@@ -451,7 +451,7 @@ class Standing(wild_robot_base.WildRobotEnv):
     def _get_obs(
         self, data: mjx.Data, info: dict[str, Any], contact: jax.Array
     ) -> mjx_env.Observation:
-        print("[DEV START] _get_obs")
+        print("[GET_OBS START] _get_obs")
         
         gyros = self.get_gyros(data)
         info["rng"], noise_rng = jax.random.split(info["rng"])
@@ -566,7 +566,7 @@ class Standing(wild_robot_base.WildRobotEnv):
                 info["current_reference_motion"],
             ]
         )
-        print("_get_obs end")
+        print("[GET_OBS END]")
         return {
             "state": state,
             "privileged_state": privileged_state,
@@ -584,7 +584,7 @@ class Standing(wild_robot_base.WildRobotEnv):
         contact: jax.Array,
     ) -> dict[str, jax.Array]:
         del metrics  # Unused.
-        print("[DEV START] get_reward")
+        print("[GET_REWARD START] get_reward")
 
         ret = {
             "orientation": cost_orientation(self.get_gravity(data)),
@@ -606,7 +606,7 @@ class Standing(wild_robot_base.WildRobotEnv):
             #     info["command"],
             # ),
         }
-        print("[DEV END] get_reward")
+        print("[GET_REWARD END] get_reward")
         return ret
 
     def sample_command(self, rng: jax.Array) -> jax.Array:
