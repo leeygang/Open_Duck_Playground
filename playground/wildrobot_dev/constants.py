@@ -24,6 +24,10 @@ FLAT_TERRAIN_XML = ROOT_PATH / "xmls" / "scene_flat_terrain.xml"
 ROUGH_TERRAIN_XML = ROOT_PATH / "xmls" / "scene_rough_terrain.xml"
 DUCK_TERRAIN_XML = ROOT_PATH / "../open_duck_mini_v2" /"xmls" / "scene_flat_terrain.xml"
 
+tasks = ["wildrobot_terrain", "duck_terrain"]
+
+def is_valid_task(task_name: str) -> bool:
+    return task_name in tasks
 
 def task_to_xml(task_name: str) -> epath.Path:
     return {

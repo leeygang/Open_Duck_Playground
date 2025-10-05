@@ -114,7 +114,7 @@ class Standing(wild_robot_base.WildRobotEnv):
 
     def __init__(
         self,
-        task: str = "flat_terrain",
+        task: str = "wildrobot_terrain",
         config: config_dict.ConfigDict = default_config(),
         config_overrides: Optional[Dict[str, Union[str, int, list[Any]]]] = None,
     ):

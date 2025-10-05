@@ -28,6 +28,8 @@ class BaseRunner(ABC):
         Args:
             args (argparse.Namespace): Command line arguments.
         """
+        print(f"args = {args}")
+        
         self.args = args
         self.output_dir = args.output_dir
         self.output_dir = Path.cwd() / Path(self.output_dir)

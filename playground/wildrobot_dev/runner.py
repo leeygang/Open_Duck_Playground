@@ -5,11 +5,12 @@ import argparse
 from playground.common import randomize
 from playground.common.runner import BaseRunner
 from playground.wildrobot_dev import standing
+import constants
 import os
 
-os.environ['JAX_LOG_COMPILES'] = '1'  # Add at top of runner.py
-from jax import config
-config.update("jax_disable_jit", True)
+# os.environ['JAX_LOG_COMPILES'] = '1'  # Add at top of runner.py
+# from jax import config
+# config.update("jax_disable_jit", True)
 
 class WildRobotRunner(BaseRunner):
 
@@ -22,6 +23,9 @@ class WildRobotRunner(BaseRunner):
 
         if args.env not in available_envs:
             raise ValueError(f"Unknown env {args.env}")
+
+        if constants.is_valid_task(args.task) is False:
+            raise ValueError(f"Unknown task {args.task}, available tasks: {constants.tasks}")
 
         self.env_file = available_envs[args.env]
 
@@ -54,7 +58,7 @@ def main() -> None:
     # parser.add_argument("--num_timesteps", type=int, default=300000000)
     parser.add_argument("--num_timesteps", type=int, default=1000000)
     parser.add_argument("--env", type=str, default="standing", help="env")
-    parser.add_argument("--task", type=str, default="flat_terrain", help="Task to run")
+    parser.add_argument("--task", type=str, default="wildrobot_terrain", help="Task to run")
     parser.add_argument(
         "--restore_checkpoint_path",
         type=str,
