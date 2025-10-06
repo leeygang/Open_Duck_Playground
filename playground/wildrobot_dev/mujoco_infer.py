@@ -247,12 +247,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model_path",
         type=str,
-        default="playground/wildrobot_dev/xmls/scene_flat_terrain.xml",
+        default="xmls/scene_flat_terrain.xml",
     )
-    parser.add_argument("--standing", action="store_true", default=False)
+    parser.add_argument("--standing", action="store_true", default=True)
 
     args = parser.parse_args()
 
+    print(f"params: {args}")
     mjinfer = MjInfer(
         args.model_path, args.onnx_model_path, args.standing
     )

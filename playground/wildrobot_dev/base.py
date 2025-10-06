@@ -30,9 +30,9 @@ from playground.wildrobot_dev import constants
 
 def get_assets(root_path: str) -> Dict[str, bytes]:
     assets = {}
-    mjx_env.update_assets(assets, root_path / "xmls", "*.xml")
-    mjx_env.update_assets(assets, root_path / "xmls" / "assets")
-    path = root_path
+    path = epath.Path(root_path)
+    mjx_env.update_assets(assets, path / "xmls", "*.xml")
+    mjx_env.update_assets(assets, path / "xmls" / "assets")
     mjx_env.update_assets(assets, path, "*.xml")
     mjx_env.update_assets(assets, path / "assets")
     return assets

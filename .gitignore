@@ -7,7 +7,6 @@ robot_saved_obs.pkl
 mujoco_saved_obs.pkl
 checkpoints/
 .tmp/
-*.onnx
 *.TXT
 .venv/
 .vscode/

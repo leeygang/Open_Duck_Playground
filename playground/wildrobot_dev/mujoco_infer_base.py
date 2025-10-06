@@ -8,9 +8,9 @@ class MJInferBase:
     def __init__(self, model_path):
 
         self.model = mujoco.MjModel.from_xml_string(
-            epath.Path(model_path).read_text(), assets=base.get_assets()
+            epath.Path(model_path).read_text(), assets=base.get_assets(".")
         )
-        print(model_path)
+        print(f"model xml path{model_path}")
 
         self.sim_dt = 0.002
         self.decimation = 10
