@@ -16,9 +16,9 @@ USE_MOTOR_SPEED_LIMITS = True
 
 class MjInfer(MJInferBase):
     def __init__(
-        self, model_path: str, onnx_model_path: str, standing: bool
+        self, model_path: str, onnx_model_path: str, standing: bool, task: str
     ):
-        super().__init__(model_path)
+        super().__init__(model_path, task=task)
 
         self.standing = standing
         self.head_control_mode = self.standing
@@ -250,11 +250,12 @@ if __name__ == "__main__":
         default="xmls/scene_flat_terrain.xml",
     )
     parser.add_argument("--standing", action="store_true", default=True)
+    parser.add_argument("--task", type=str, default="wildrobot_terrain", help="Task name matching ROBOT_CONFIGS key")
 
     args = parser.parse_args()
 
     print(f"params: {args}")
     mjinfer = MjInfer(
-        args.model_path, args.onnx_model_path, args.standing
+        args.model_path, args.onnx_model_path, args.standing, args.task
     )
     mjinfer.run()

@@ -2,10 +2,11 @@ import mujoco
 import numpy as np
 from etils import epath
 from playground.wildrobot_dev import base
+from playground.wildrobot_dev import constants as wr_constants
 
 
 class MJInferBase:
-    def __init__(self, model_path):
+    def __init__(self, model_path, task: str):
 
         self.model = mujoco.MjModel.from_xml_string(
             epath.Path(model_path).read_text(), assets=base.get_assets(".")
@@ -126,6 +127,33 @@ class MJInferBase:
 
         self.data.qpos[:] = self.model.keyframe("home").qpos
         self.data.ctrl[:] = self.default_actuator
+
+        # ------------------------------------------------------------------
+        # Robot config & geom-based contact detection (align with training)
+        # ------------------------------------------------------------------
+        if task not in wr_constants.ROBOT_CONFIGS:
+            raise ValueError(f"Unknown task '{task}'. Available: {list(wr_constants.ROBOT_CONFIGS.keys())}")
+        self.robot_config = wr_constants.ROBOT_CONFIGS[task]
+        print(f"[INFO] Using robot config for task: {task}")
+
+        # Floor geom id
+        try:
+            self._floor_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, 'floor')
+        except Exception:
+            self._floor_geom_id = -1
+            print("[WARN] Floor geom 'floor' not found; contact detection disabled.")
+
+        # Foot geom ids from robot_config (preferred)
+        self._feet_geom_ids = tuple(
+            mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, g)
+            for g in self.robot_config.feet_geoms
+            if self._floor_geom_id >= 0  # still compute ids even if floor missing; floor check later
+        )
+
+        if len(self._feet_geom_ids) == 0:
+            print('[WARN] No foot geoms detected via robot_config.feet_geoms.')
+        else:
+            print(f'[INFO] Foot geom ids (from robot_config): {self._feet_geom_ids}; floor geom id: {self._floor_geom_id}')
 
     def get_actuator_id_from_name(self, name: str) -> int:
         """Return the id of a specified actuator"""
@@ -278,6 +306,27 @@ class MJInferBase:
         return False
 
     def get_feet_contacts(self, data):
-        left_contact = self.check_contact(data, "foot_assembly", "floor")
-        right_contact = self.check_contact(data, "foot_assembly_2", "floor")
-        return left_contact, right_contact
+        """Return contact booleans for each registered foot geom vs floor geom.
+
+        Mirrors the training logic where each foot geom is individually checked
+        against the floor geom. Returns a tuple of booleans with length equal to
+        number of foot geoms (typically 2). Falls back to False if ids are invalid.
+        """
+        if self._floor_geom_id < 0 or len(self._feet_geom_ids) == 0:
+            return tuple(False for _ in self._feet_geom_ids) if self._feet_geom_ids else (False, False)
+
+        # Iterate all current contacts once; collect which geoms are touching the floor
+        floor = self._floor_geom_id
+        hit = {fid: False for fid in self._feet_geom_ids}
+        for i in range(data.ncon):
+            c = data.contact[i]
+            g1, g2 = c.geom1, c.geom2
+            # Check foot-floor pair (order independent)
+            if g1 == floor and g2 in hit:
+                hit[g2] = True
+            elif g2 == floor and g1 in hit:
+                hit[g1] = True
+            # Early exit if all True
+            if all(hit.values()):
+                break
+        return tuple(hit[fid] for fid in self._feet_geom_ids)
