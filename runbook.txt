@@ -29,4 +29,3 @@ run onshape-to-robot-mujoco on mac:
 mjpython -m onshape_to_robot.mujoco scene_flat_terrain.xml
 
 
-
