@@ -70,87 +70,85 @@ class MjInfer(MJInferBase):
         gyro = self.get_gyro(data)
         accelerometer = self.get_accelerometer(data)
         accelerometer[0] += 1.3
-
         joint_angles = self.get_actuator_joints_qpos(data.qpos)
         joint_vel = self.get_actuator_joints_qvel(data.qvel)
-
         contacts = self.get_feet_contacts(data)
 
-        # if not self.standing:
-        # ref = self.PRM.get_reference_motion(*command[:3], self.imitation_i)
-
-        obs = np.concatenate(
-            [
-                gyro,
-                accelerometer,
-                # gravity,
-                command,
-                joint_angles - self.default_actuator,
-                joint_vel * self.dof_vel_scale,
-                self.last_action,
-                self.last_last_action,
-                self.last_last_last_action,
-                self.motor_targets,
-                contacts,
-                # ref if not self.standing else np.array([]),
-                # [self.imitation_i]
-                self.imitation_phase,
-            ]
-        )
-
+        # Fixed observation layout matching training (standing task):
+        # [gyro(3), accel(3), command(3), joint_angle_delta(dof), joint_vel_scaled(dof),
+        #  last_action(dof), last_last_action(dof), last_last_last_action(dof), contacts(2), ref_motion(4 zeros)]
+        # Only first 3 entries of command (lin x, lin y, ang yaw) were used during training.
+        cmd3 = np.array(command[:3], dtype=np.float32)
+        obs = np.concatenate([
+            gyro,
+            accelerometer,
+            cmd3,
+            joint_angles - self.default_actuator,
+            joint_vel * self.dof_vel_scale,
+            self.last_action,
+            self.last_last_action,
+            self.last_last_last_action,
+            contacts,
+            np.zeros(4, dtype=np.float32),  # placeholder current reference motion
+        ])
+        if not hasattr(self, "_printed_obs_debug"):
+            print("[OBS DEBUG] segment sizes -> gyro:", gyro.shape[0],
+                  "accel:", accelerometer.shape[0],
+                  "command(used):", len(cmd3),
+                  "joint_angle_delta:", (joint_angles - self.default_actuator).shape[0],
+                  "joint_vel:", (joint_vel * self.dof_vel_scale).shape[0],
+                  "last_action:", self.last_action.shape[0],
+                  "last_last_action:", self.last_last_action.shape[0],
+                  "last_last_last_action:", self.last_last_last_action.shape[0],
+                  "contacts:", len(contacts),
+                  "placeholder:", 4,
+                  "TOTAL:", obs.shape[0])
+            self._printed_obs_debug = True
         return obs
 
     def key_callback(self, keycode):
         print(f"key: {keycode}")
-        if keycode == 72:  # h
+        if keycode == 72:  # toggle head control mode
             self.head_control_mode = not self.head_control_mode
-        lin_vel_x = 0
-        lin_vel_y = 0
-        ang_vel = 0
+            return
+        # Movement or head control depending on mode
         if not self.head_control_mode:
-            if keycode == 265:  # arrow up
-                lin_vel_x = self.COMMANDS_RANGE_X[1]
-            if keycode == 264:  # arrow down
-                lin_vel_x = self.COMMANDS_RANGE_X[0]
-            if keycode == 263:  # arrow left
-                lin_vel_y = self.COMMANDS_RANGE_Y[1]
-            if keycode == 262:  # arrow right
-                lin_vel_y = self.COMMANDS_RANGE_Y[0]
-            if keycode == 81:  # a
-                ang_vel = self.COMMANDS_RANGE_THETA[1]
-            if keycode == 69:  # e
-                ang_vel = self.COMMANDS_RANGE_THETA[0]
-            if keycode == 80:  # p
-                self.phase_frequency_factor += 0.1
-            if keycode == 59:  # m
-                self.phase_frequency_factor -= 0.1
+            if keycode == 265:  # up
+                self.commands[0] = self.COMMANDS_RANGE_X[1]
+            elif keycode == 264:  # down
+                self.commands[0] = self.COMMANDS_RANGE_X[0]
+            elif keycode == 263:  # left
+                self.commands[1] = self.COMMANDS_RANGE_Y[1]
+            elif keycode == 262:  # right
+                self.commands[1] = self.COMMANDS_RANGE_Y[0]
+            elif keycode == 81:  # a spin left
+                self.commands[2] = self.COMMANDS_RANGE_THETA[1]
+            elif keycode == 69:  # e spin right
+                self.commands[2] = self.COMMANDS_RANGE_THETA[0]
+            else:
+                # release resets velocity commands
+                self.commands[0] = 0
+                self.commands[1] = 0
+                self.commands[2] = 0
         else:
-            neck_pitch = 0
-            head_pitch = 0
-            head_yaw = 0
-            head_roll = 0
-            if keycode == 265:  # arrow up
-                head_pitch = self.NECK_PITCH_RANGE[1]
-            if keycode == 264:  # arrow down
-                head_pitch = self.NECK_PITCH_RANGE[0]
-            if keycode == 263:  # arrow left
-                head_yaw = self.HEAD_YAW_RANGE[1]
-            if keycode == 262:  # arrow right
-                head_yaw = self.HEAD_YAW_RANGE[0]
-            if keycode == 81:  # a
-                head_roll = self.HEAD_ROLL_RANGE[1]
-            if keycode == 69:  # e
-                head_roll = self.HEAD_ROLL_RANGE[0]
-
-            self.commands[3] = neck_pitch
-            self.commands[4] = head_pitch
-            self.commands[5] = head_yaw
-            self.commands[6] = head_roll
-
-        self.commands[0] = lin_vel_x
-        self.commands[1] = lin_vel_y
-        self.commands[2] = ang_vel
-
+            # Head control indices: 3:neck_pitch 4:head_pitch 5:head_yaw 6:head_roll
+            if keycode == 265:  # up
+                self.commands[4] = self.NECK_PITCH_RANGE[1]
+            elif keycode == 264:  # down
+                self.commands[4] = self.NECK_PITCH_RANGE[0]
+            elif keycode == 263:  # left
+                self.commands[5] = self.HEAD_YAW_RANGE[1]
+            elif keycode == 262:  # right
+                self.commands[5] = self.HEAD_YAW_RANGE[0]
+            elif keycode == 81:  # a
+                self.commands[6] = self.HEAD_ROLL_RANGE[1]
+            elif keycode == 69:  # e
+                self.commands[6] = self.HEAD_ROLL_RANGE[0]
+            else:
+                self.commands[3] = 0
+                self.commands[4] = 0
+                self.commands[5] = 0
+                self.commands[6] = 0
     def run(self):
         try:
             with mujoco.viewer.launch_passive(
@@ -168,49 +166,16 @@ class MjInfer(MJInferBase):
                     mujoco.mj_step(self.model, self.data)
 
                     counter += 1
-
                     if counter % self.decimation == 0:
-                        if not self.standing:
-                            self.imitation_i += 1.0 * self.phase_frequency_factor
-                            self.imitation_i = (
-                                self.imitation_i % self.PRM.nb_steps_in_period
-                            )
-                            # print(self.PRM.nb_steps_in_period)
-                            # exit()
-                            self.imitation_phase = np.array(
-                                [
-                                    np.cos(
-                                        self.imitation_i
-                                        / self.PRM.nb_steps_in_period
-                                        * 2
-                                        * np.pi
-                                    ),
-                                    np.sin(
-                                        self.imitation_i
-                                        / self.PRM.nb_steps_in_period
-                                        * 2
-                                        * np.pi
-                                    ),
-                                ]
-                            )
-                        obs = self.get_obs(
-                            self.data,
-                            self.commands,
-                        )
+                        obs = self.get_obs(self.data, self.commands)
                         self.saved_obs.append(obs)
                         action = self.policy.infer(obs)
-
-                        # self.action_filter.push(action)
-                        # action = self.action_filter.get_filtered_action()
-
                         self.last_last_last_action = self.last_last_action.copy()
                         self.last_last_action = self.last_action.copy()
                         self.last_action = action.copy()
-
                         self.motor_targets = (
                             self.default_actuator + action * self.action_scale
                         )
-
                         if USE_MOTOR_SPEED_LIMITS:
                             self.motor_targets = np.clip(
                                 self.motor_targets,
@@ -221,11 +186,7 @@ class MjInfer(MJInferBase):
                                 + self.max_motor_velocity
                                 * (self.sim_dt * self.decimation),
                             )
-
                             self.prev_motor_targets = self.motor_targets.copy()
-
-                        # head_targets = self.commands[3:]
-                        # self.motor_targets[5:9] = head_targets
                         self.data.ctrl = self.motor_targets.copy()
 
                     viewer.sync()

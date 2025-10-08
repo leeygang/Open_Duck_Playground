@@ -9,6 +9,19 @@ class OnnxInfer:
         )
         self.input_name = input_name
         self.awd = awd
+        # Cache expected input shape (assumes first dimension is batch)
+        self._input_meta = self.ort_session.get_inputs()[0]
+        # Typical shape: [None, obs_dim] or [1, obs_dim]
+        self.expected_obs_dim = None
+        if len(self._input_meta.shape) >= 2:
+            dim = self._input_meta.shape[-1]
+            if isinstance(dim, int):
+                self.expected_obs_dim = dim
+        elif len(self._input_meta.shape) == 1:
+            # Fallback: single-dimension input (rare for PPO style models)
+            dim = self._input_meta.shape[0]
+            if isinstance(dim, int):
+                self.expected_obs_dim = dim
 
     def infer(self, inputs):
         if self.awd:
