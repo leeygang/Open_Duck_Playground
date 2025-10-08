@@ -38,13 +38,18 @@ class WildRobotRunner(BaseRunner):
             self.env.observation_size["state"][0]
         )  # 0: state 1: privileged_state
         self.restore_checkpoint_path = args.restore_checkpoint_path
-        self.overrided_ppo_params = {
-            "num_envs": 1,
-            "unroll_length": 4,
-            "num_minibatches": 1, #64*20 /256
-            "batch_size" : 4
-        }
+        # Use default PPO params (no overrides) to mirror open_duck_mini_v2 runner.
         print(f"Observation size: {self.obs_size}")
+    # ------------------------------------------------------------------
+    # Debug helper: uncomment to override PPO training parameters.
+    # This was previously active but removed to match open_duck_mini_v2.
+    # self.overrided_ppo_params = {
+    #     "num_envs": 1,
+    #     "unroll_length": 4,
+    #     "num_minibatches": 1,  # 64*20 /256
+    #     "batch_size": 4,
+    # }
+    # ------------------------------------------------------------------
 
 
 def main() -> None:
@@ -56,7 +61,7 @@ def main() -> None:
         help="Where to save the checkpoints",
     )
     # parser.add_argument("--num_timesteps", type=int, default=300000000)
-    parser.add_argument("--num_timesteps", type=int, default=1000000)
+    parser.add_argument("--num_timesteps", type=int, default=150000000)
     parser.add_argument("--env", type=str, default="standing", help="env")
     parser.add_argument("--task", type=str, default="wildrobot_terrain", help="Task to run")
     parser.add_argument(
