@@ -226,8 +226,13 @@ class Standing(wild_robot_base.WildRobotEnv):
         )  # x y noise
 
         rng, key = jax.random.split(rng)
-        yaw = jax.random.uniform(key, (1,), minval=-3.14, maxval=3.14)
-        quat = math.axis_angle_to_quat(jp.array([0, 0, 1]), yaw)
+        # Generate a scalar yaw, then build quaternion explicitly to avoid jnp.insert path
+        yaw = jax.random.uniform(key, (), minval=-jp.pi, maxval=jp.pi)
+        half_yaw = yaw * 0.5
+        s = jp.sin(half_yaw)
+        c = jp.cos(half_yaw)
+        # Quaternion [w, x, y, z] for rotation about z-axis by yaw
+        quat = jp.array([c, 0.0, 0.0, s])
         new_quat = math.quat_mul(
             qpos[self._floating_base_qpos_addr + 3 : self._floating_base_qpos_addr + 7],
             quat,

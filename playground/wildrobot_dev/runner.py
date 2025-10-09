@@ -1,4 +1,8 @@
-"""Runs training and evaluation loop for Open Duck Mini V2."""
+"""Runs training and evaluation loop for WildRobot and Open Duck Mini
+
+Adds a --debug flag to drastically reduce PPO workload and increase log frequency.
+Also prints JAX backend/devices to help diagnose long compile times or missing GPU.
+"""
 
 import argparse
 
@@ -38,18 +42,36 @@ class WildRobotRunner(BaseRunner):
             self.env.observation_size["state"][0]
         )  # 0: state 1: privileged_state
         self.restore_checkpoint_path = args.restore_checkpoint_path
-        # Use default PPO params (no overrides) to mirror open_duck_mini_v2 runner.
+
+        # Print device/backend info to help diagnose performance
+        try:
+            import jax as _jax
+            print("[JAX] default backend:", _jax.default_backend())
+            print("[JAX] devices:", _jax.devices())
+        except Exception as _e:
+            print("[JAX] Unable to query devices:", _e)
+
+        # Optional debug overrides to shrink compile/training time drastically
+        self.overrided_ppo_params = {}
+        if getattr(args, "debug", False):
+            # Shrink environment count and unrolls to minimal workload
+            self.overrided_ppo_params.update({
+                "num_envs": 1,
+                "unroll_length": 8,
+                "num_minibatches": 1,
+                "batch_size": 8,
+                # Make logging very frequent so progress is visible
+                "log_frequency": 1,
+            })
+            # Also clamp total timesteps for debug sessions
+            self.num_timesteps = min(self.num_timesteps, 20_000)
+            # Disable domain randomization in debug to avoid vmap over model which
+            # can trigger JAX/device_put issues on some CPU-only setups.
+            self.randomizer = None
+            print("[DEBUG] Using reduced PPO parameters and timesteps for faster iteration.")
+            print("[DEBUG] Domain randomization disabled for stability in debug mode.")
+
         print(f"Observation size: {self.obs_size}")
-    # ------------------------------------------------------------------
-    # Debug helper: uncomment to override PPO training parameters.
-    # This was previously active but removed to match open_duck_mini_v2.
-    # self.overrided_ppo_params = {
-    #     "num_envs": 1,
-    #     "unroll_length": 4,
-    #     "num_minibatches": 1,  # 64*20 /256
-    #     "batch_size": 4,
-    # }
-    # ------------------------------------------------------------------
 
 
 def main() -> None:
@@ -70,10 +92,39 @@ def main() -> None:
         default=None,
         help="Resume training from this checkpoint",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Reduce PPO workload and increase logging frequency for faster iteration",
+    )
+    parser.add_argument(
+        "--cpu",
+        action="store_true",
+        help="Force JAX to run on CPU (sets JAX_PLATFORM_NAME=cpu). Useful when CUDA is misconfigured.",
+    )
+    parser.add_argument(
+        "--skip_onnx_export",
+        action="store_true",
+        help="Skip ONNX export during checkpoints to avoid TensorFlow/CUDA initialization overhead.",
+    )
+    parser.add_argument(
+        "--no_jit",
+        action="store_true",
+        help="Disable JAX JIT compilation for faster startup on CPU-only systems (slower per-step but no long compiles).",
+    )
     # parser.add_argument(
     #     "--debug", action="store_true", help="Run in debug mode with minimal parameters"
     # )
     args = parser.parse_args()
+
+    if args.cpu:
+        # Set before JAX initializes
+        os.environ["JAX_PLATFORM_NAME"] = "cpu"
+        print("[Runner] Forcing JAX to CPU via JAX_PLATFORM_NAME=cpu")
+
+    # Optional: show JAX compile logs when debugging with JIT enabled
+    if args.debug and not args.no_jit:
+        os.environ.setdefault("JAX_LOG_COMPILES", "1")
 
     runner = WildRobotRunner(args)
 

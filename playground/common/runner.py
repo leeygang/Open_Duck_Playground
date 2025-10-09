@@ -2,8 +2,8 @@
 Defines a common runner between the different robots.
 Inspired from https://github.com/kscalelabs/mujoco_playground/blob/master/playground/common/runner.py
 """
-# Must be first import
-import playground.common.tb_logging  # noqa: F401
+# Must be first import: load tb_logging to patch jax.monitoring early
+import playground.common.tb_logging as tb_logging  # noqa: F401
 
 from pathlib import Path
 from abc import ABC
@@ -21,7 +21,6 @@ from brax.training.agents.ppo import networks as ppo_networks, train as ppo
 from mujoco_playground import wrapper
 from mujoco_playground.config import locomotion_params
 from orbax import checkpoint as ocp
-import jax
 import numpy as np
 
 from playground.common.export_onnx import export_onnx
@@ -60,7 +59,12 @@ class BaseRunner(ABC):
         self.env = None
         self.eval_env = None
         self.randomizer = None
+        # Create single TB writer and inject into tb_logging so all logs go to same place
         self.writer = SummaryWriter(log_dir=self.output_dir)
+        try:
+            tb_logging.set_writer(self.writer)
+        except Exception:
+            pass
         self.action_size = None
         self.obs_size = None
         self.num_timesteps = args.num_timesteps
@@ -71,8 +75,9 @@ class BaseRunner(ABC):
         self.start_time = None
         self.last_progress_time = None
 
-        # CACHE STUFF
+        # CACHE STUFF (import jax here so env variables like JAX_PLATFORM_NAME set by callers take effect)
         os.makedirs(".tmp", exist_ok=True)
+        import jax  # local import to honor prior env like JAX_PLATFORM_NAME
         jax.config.update("jax_compilation_cache_dir", ".tmp/jax_cache")
         jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
         jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
@@ -81,6 +86,35 @@ class BaseRunner(ABC):
             "xla_gpu_per_fusion_autotune_cache_dir",
         )
         os.environ["JAX_COMPILATION_CACHE_DIR"] = ".tmp/jax_cache"
+
+        # Allow callers to disable JIT for faster startup on CPU-only systems
+        if getattr(self.args, "no_jit", False):
+            try:
+                jax.config.update("jax_disable_jit", True)
+                logger.info("JAX JIT disabled via --no_jit")
+            except Exception as _e:
+                logger.warning(f"Failed to disable JIT: {_e}")
+
+        # Decide whether to use pmap for environment reset based on backend/devices.
+        # Rationale:
+        # - pmap is only beneficial on multi-accelerator setups (e.g., TPU or multi-GPU)
+        # - On CPU or single device, it adds compilation/overhead without benefits
+        try:
+            self.jax_platform_name = jax.default_backend() or (jax.devices()[0].platform if jax.devices() else "cpu")
+        except Exception:
+            self.jax_platform_name = "cpu"
+        try:
+            self.jax_device_count = jax.device_count()
+        except Exception:
+            self.jax_device_count = 1
+
+        self.use_pmap_on_reset = (
+            self.jax_platform_name != "cpu" and self.jax_device_count > 1
+        )
+        logger.info(
+            f"JAX backend: {self.jax_platform_name}, device_count: {self.jax_device_count}, "
+            f"use_pmap_on_reset: {self.use_pmap_on_reset}"
+        )
 
         logger.info("BaseRunner initialized successfully")
 
@@ -164,19 +198,38 @@ class BaseRunner(ABC):
         
         orbax_checkpointer.save(path, params, force=True, save_args=save_args)
         
-        onnx_export_path = f"{self.output_dir}/{d}_{current_step}.onnx"
-        logger.info(f"Exporting ONNX to: {onnx_export_path}")
-        
-        export_onnx(
-            params,
-            self.action_size,
-            self.ppo_params,
-            self.obs_size,  # may not work
-            output_path=onnx_export_path
-        )
-        logger.info(f"Checkpoint and ONNX export completed")
+        # Optional ONNX export
+        skip_export = getattr(self.args, "skip_onnx_export", False)
+        if skip_export:
+            logger.info("Skipping ONNX export at checkpoint due to --skip_onnx_export flag")
+        else:
+            onnx_export_path = f"{self.output_dir}/{d}_{current_step}.onnx"
+            logger.info(f"Exporting ONNX to: {onnx_export_path}")
+            try:
+                export_onnx(
+                    params,
+                    self.action_size,
+                    self.ppo_params,
+                    self.obs_size,  # may not work
+                    output_path=onnx_export_path
+                )
+                logger.info("Checkpoint and ONNX export completed")
+            except Exception as e:
+                logger.warning(f"ONNX export failed or was interrupted: {e}. Continuing training.")
 
     def train(self) -> None:
+        # Ensure INFO logs are visible by (re)adding a StreamHandler to stdout
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.INFO)
+        if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
+            sh = logging.StreamHandler(sys.stdout)
+            sh.setLevel(logging.INFO)
+            sh.setFormatter(
+                logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            )
+            logger.addHandler(sh)
+        logger.setLevel(logging.INFO)
+
         logger.info("=" * 80)
         logger.info("STARTING TRAINING")
         logger.info("=" * 80)
@@ -205,8 +258,13 @@ class BaseRunner(ABC):
         logger.info(f"Base PPO params: {self.ppo_training_params}")
         
         for k, v in self.overrided_ppo_params.items():
-            logger.info(f"Overriding {k}: {self.ppo_training_params.get(k)} -> {v}")
-            self.ppo_training_params[k] = v
+            if k in self.ppo_training_params:
+                logger.info(f"Overriding {k}: {self.ppo_training_params.get(k)} -> {v}")
+                self.ppo_training_params[k] = v
+            else:
+                logger.warning(
+                    f"Ignoring unknown PPO param override '{k}' for this Brax version"
+                )
 
         logger.info(f"Final PPO params: {self.ppo_training_params}")
 
@@ -228,10 +286,14 @@ class BaseRunner(ABC):
         compilation_start = time.time()
 
         try:
+            # use_pmap_on_reset controls whether env resets are parallelized across devices with jax.pmap.
+            # Keep it False on CPU/single-device to avoid extra compilation overhead; enable only on
+            # multi-accelerator (e.g., TPU or multi-GPU) setups where it helps throughput and seeding.
             _, params, _ = train_fn(
                 environment=self.env,
                 eval_env=self.eval_env,
                 wrap_env_fn=wrapper.wrap_for_brax_training,
+                use_pmap_on_reset=self.use_pmap_on_reset,
             )
 
             total_time = time.time() - self.start_time
