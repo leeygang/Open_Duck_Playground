@@ -1,6 +1,7 @@
 """Runs training and evaluation loop for WildRobot and Open Duck Mini
 
 Adds a --debug flag to drastically reduce PPO workload and increase log frequency.
+Adds a --profile flag with presets: 'high' (higher quality) and 'fast' (balanced CPU runtime).
 Also prints JAX backend/devices to help diagnose long compile times or missing GPU.
 """
 
@@ -51,10 +52,45 @@ class WildRobotRunner(BaseRunner):
         except Exception as _e:
             print("[JAX] Unable to query devices:", _e)
 
-        # Optional debug overrides to shrink compile/training time drastically
+        # Profiles and debug overrides
         self.overrided_ppo_params = {}
-        if getattr(args, "debug", False):
-            # Shrink environment count and unrolls to minimal workload
+        profiles = {
+            "high": {
+                # Higher quality settings (CPU-feasible with JIT). Expect long runs.
+                "num_envs": 16,
+                "unroll_length": 128,
+                "num_minibatches": 8,
+                "batch_size": 2048,  # ~= num_envs * unroll_length
+                "learning_rate": 3e-4,
+                "discounting": 0.99,
+                "gae_lambda": 0.95,
+                "entropy_cost": 1e-3,
+                "normalize_advantage": True,
+                "log_frequency": 100,
+            },
+            "fast": {
+                # Balanced runtime/quality for CPU with JIT.
+                "num_envs": 8,
+                "unroll_length": 32,
+                "num_minibatches": 4,
+                "batch_size": 1024,
+                "learning_rate": 3e-4,
+                "discounting": 0.99,
+                "gae_lambda": 0.95,
+                "entropy_cost": 1e-3,
+                "normalize_advantage": True,
+                "log_frequency": 50,
+            },
+        }
+
+        if getattr(args, "profile", None) in profiles:
+            sel = args.profile
+            self.overrided_ppo_params.update(profiles[sel])
+            print(f"[PROFILE] Using '{sel}' PPO overrides: {self.overrided_ppo_params}")
+            if getattr(args, "debug", False):
+                print("[PROFILE] --profile provided; ignoring --debug overrides.")
+        elif getattr(args, "debug", False):
+            # Optional debug overrides to shrink compile/training time drastically
             self.overrided_ppo_params.update({
                 "num_envs": 1,
                 "unroll_length": 8,
@@ -82,8 +118,8 @@ def main() -> None:
         default="checkpoints",
         help="Where to save the checkpoints",
     )
-    # parser.add_argument("--num_timesteps", type=int, default=300000000)
-    parser.add_argument("--num_timesteps", type=int, default=150000000)
+    parser.add_argument("--num_timesteps", type=int, default=300000000)
+    #parser.add_argument("--num_timesteps", type=int, default=150000000)
     parser.add_argument("--env", type=str, default="standing", help="env")
     parser.add_argument("--task", type=str, default="wildrobot_terrain", help="Task to run")
     parser.add_argument(
@@ -111,6 +147,22 @@ def main() -> None:
         "--no_jit",
         action="store_true",
         help="Disable JAX JIT compilation for faster startup on CPU-only systems (slower per-step but no long compiles).",
+    )
+    parser.add_argument(
+        "--export_on_finish",
+        action="store_true",
+        help=(
+            "Export a single ONNX model when training completes, even if per-checkpoint export is skipped."
+        ),
+    )
+    parser.add_argument(
+        "--profile",
+        choices=["high", "fast"],
+        default=None,
+        help=(
+            "Preset PPO config: 'high' for higher quality (longer runs), 'fast' for balanced CPU runtime. "
+            "If set, takes precedence over --debug."
+        ),
     )
     # parser.add_argument(
     #     "--debug", action="store_true", help="Run in debug mode with minimal parameters"

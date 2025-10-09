@@ -304,6 +304,25 @@ class BaseRunner(ABC):
             logger.info(f"Total time: {total_time:.2f}s")
             logger.info(f"Compilation time: {compilation_time:.2f}s")
             logger.info("=" * 80)
+
+            # Optional final export regardless of per-checkpoint skip flag
+            if getattr(self.args, "export_on_finish", False):
+                try:
+                    d = datetime.now().strftime("%Y_%m_%d_%H%M%S")
+                    onnx_export_path = f"{self.output_dir}/{d}_final.onnx"
+                    logger.info(
+                        f"[FINAL EXPORT] Exporting ONNX at training end to: {onnx_export_path}"
+                    )
+                    export_onnx(
+                        params,
+                        self.action_size,
+                        self.ppo_params,
+                        self.obs_size,
+                        output_path=onnx_export_path,
+                    )
+                    logger.info("[FINAL EXPORT] Completed")
+                except Exception as e:
+                    logger.warning(f"[FINAL EXPORT] ONNX export failed: {e}")
         except Exception as e:
             logger.error("=" * 80)
             logger.error("TRAINING FAILED")
