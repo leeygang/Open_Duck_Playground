@@ -22,6 +22,7 @@ from mujoco_playground import wrapper
 from mujoco_playground.config import locomotion_params
 from orbax import checkpoint as ocp
 import jax
+import numpy as np
 
 from playground.common.export_onnx import export_onnx
 
@@ -83,6 +84,46 @@ class BaseRunner(ABC):
 
         logger.info("BaseRunner initialized successfully")
 
+    @staticmethod
+    def _to_tb_scalar(x):
+        """Converts various numeric types (including JAX/NumPy scalars) to a Python float.
+
+        Returns None if conversion isn't possible.
+        """
+        # Fast path for Python numbers
+        if isinstance(x, (int, float)):
+            return float(x)
+
+        # JAX: bring to host if needed
+        try:
+            import jax  # local import to avoid issues if environment changes
+            if isinstance(x, jax.Array):
+                x = jax.device_get(x)
+        except Exception:
+            # If jax isn't available or check failed, continue
+            pass
+
+        # NumPy scalar/array handling
+        try:
+            if isinstance(x, np.ndarray):
+                if x.shape == ():
+                    return float(x.item())
+                # If it's a vector/tensor, log its mean as a single scalar
+                return float(np.asarray(x).mean())
+            if isinstance(x, (np.floating, np.integer)):
+                return float(x)
+        except Exception:
+            pass
+
+        # Generic fallback attempts
+        try:
+            return float(x)
+        except Exception:
+            try:
+                return float(np.asarray(x).mean())
+            except Exception:
+                return None
+
     def progress_callback(self, num_steps: int, metrics: dict) -> None:
         logger.info("[BASE RUNNER] progress_callback")
         
@@ -95,13 +136,20 @@ class BaseRunner(ABC):
         logger.debug(f"[PROGRESS] All metrics: {metrics}")
 
         for metric_name, metric_value in metrics.items():
-            # Convert to float, but watch out for 0-dim JAX arrays
-            self.writer.add_scalar(metric_name, metric_value, num_steps)
+            # Convert to float; TensorBoard expects numpy or python scalars, not JAX arrays
+            scalar_val = self._to_tb_scalar(metric_value)
+            if scalar_val is None:
+                logger.warning(
+                    f"[TB] Skipping metric '{metric_name}' (unconvertible type: {type(metric_value)})"
+                )
+                continue
+            self.writer.add_scalar(metric_name, scalar_val, int(num_steps))
 
         print("-----------")
-        print(
-            f'STEP: {num_steps} reward: {metrics["eval/episode_reward"]} reward_std: {metrics["eval/episode_reward_std"]}'
-        )
+        # Ensure pretty printing for JAX/NumPy types
+        _rew = self._to_tb_scalar(metrics.get("eval/episode_reward", np.nan))
+        _rew_std = self._to_tb_scalar(metrics.get("eval/episode_reward_std", np.nan))
+        print(f"STEP: {int(num_steps)} reward: {_rew} reward_std: {_rew_std}")
         print("-----------")
 
     def policy_params_fn(self, current_step, make_policy, params):
