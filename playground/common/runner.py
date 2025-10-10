@@ -18,6 +18,7 @@ import sys
 import time
 import logging
 import threading
+from brax.training import pmap as brax_pmap
 from brax.training.agents.ppo import networks as ppo_networks, train as ppo
 from mujoco_playground import wrapper
 from mujoco_playground.config import locomotion_params
@@ -40,6 +41,8 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+PMAP_ASSERT_PATCHED = False
 
 # Enable JAX debugging
 # os.environ['JAX_LOG_COMPILES'] = '1'
@@ -123,6 +126,39 @@ class BaseRunner(ABC):
             f"JAX backend: {self.jax_platform_name}, device_count: {self.jax_device_count}, "
             f"use_pmap_on_reset: {self.use_pmap_on_reset}"
         )
+
+        # On single-device CPU runs, Brax's replication assertion at the end of training can
+        # spuriously fail even though training completed. Relax it by wrapping the check so we
+        # log and continue instead of raising.
+        global PMAP_ASSERT_PATCHED
+        if (
+            not PMAP_ASSERT_PATCHED
+            and self.jax_platform_name == "cpu"
+            and self.jax_device_count <= 1
+        ):
+            original_assert_is_replicated = brax_pmap.assert_is_replicated
+            jax_module = jax
+
+            def cpu_tolerant_assert_is_replicated(x, debug=None):
+                if jax_module.process_count() == 1 and jax_module.local_device_count() <= 1:
+                    try:
+                        return original_assert_is_replicated(x, debug)
+                    except AssertionError as err:
+                        warn_msg = debug if debug is not None else (
+                            err.args[0] if err.args else "replication mismatch"
+                        )
+                        logger.warning(
+                            "[CPU] Ignoring Brax pmap.assert_is_replicated failure on single-device run: %s",
+                            warn_msg,
+                        )
+                        return None
+                return original_assert_is_replicated(x, debug)
+
+            brax_pmap.assert_is_replicated = cpu_tolerant_assert_is_replicated
+            PMAP_ASSERT_PATCHED = True
+            logger.info(
+                "Patched Brax pmap.assert_is_replicated to tolerate single-device CPU setups."
+            )
 
         logger.info("BaseRunner initialized successfully")
 

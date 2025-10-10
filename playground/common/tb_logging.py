@@ -87,10 +87,10 @@ def add_scalar(name: str, value, step=None):
         pass
 
     # Print to console (formatted)
-    if s is not None:
-        print(f"[Metrics] step={s:<6} {name:<40} {v:.6f}")
-    else:
-        print(f"[Metrics] {name:<40} {v:.6f}")
+    # if s is not None:
+    #     print(f"[Metrics] step={s:<6} {name:<40} {v:.6f}")
+    # else:
+    #     print(f"[Metrics] {name:<40} {v:.6f}")
 
 # Make sure jax.monitoring exists
 if not hasattr(jax, "monitoring"):
