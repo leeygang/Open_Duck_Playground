@@ -181,7 +181,7 @@ def main() -> None:
     parser.add_argument(
         "--num_evals",
         type=int,
-        default=None,
+        default=1,
         help=(
             "Number of evaluation iterations (controls progress callback frequency). "
             "Training is divided into num_evals iterations, with a callback after each. "
