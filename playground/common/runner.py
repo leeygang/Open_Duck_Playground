@@ -17,7 +17,6 @@ import os
 import sys
 import time
 import logging
-import threading
 from brax.training import pmap as brax_pmap
 from brax.training.agents.ppo import networks as ppo_networks, train as ppo
 from mujoco_playground import wrapper
@@ -29,6 +28,8 @@ from playground.common.export_onnx import export_onnx
 
 # ANSI color codes
 GREEN = '\033[92m'
+RED = '\033[91m'
+YELLOW = '033[93m'
 RESET = '\033[0m'
 
 # Enable verbose logging
@@ -77,15 +78,13 @@ class BaseRunner(ABC):
         self.num_timesteps = args.num_timesteps
         self.restore_checkpoint_path = None
         self.overrided_ppo_params = dict()
+        self.callback_count = 0
+        self.expected_callbacks = None
         
         # Timing
         self.start_time = None
         self.last_progress_time = None
         self.last_progress_step = 0
-        self._ema_updates_per_sec = None
-        self._hb_stop = threading.Event()
-        self._hb_thread = None
-        self._hb_interval = float(getattr(self.args, "heartbeat_interval", 5.0))
         # CACHE STUFF (import jax here so env variables like JAX_PLATFORM_NAME set by callers take effect)
         os.makedirs(".tmp", exist_ok=True)
         import jax  # local import to honor prior env like JAX_PLATFORM_NAME
@@ -203,30 +202,16 @@ class BaseRunner(ABC):
                 return None
 
     def progress_callback(self, num_steps: int, metrics: dict) -> None:
-        logger.info(GREEN +"[BASE RUNNER] progress_callback" + RESET)
+        self.callback_count += 1
+        total_callbacks = self.expected_callbacks or "?"
+        logger.info(
+            GREEN + f"[BASE RUNNER] progress_callback {self.callback_count}/{total_callbacks}" + RESET
+        )
         
         current_time = time.time()
         if self.last_progress_time is not None:
             time_since_last = current_time - self.last_progress_time
             logger.info(f"Time since last progress: {time_since_last:.2f}s")
-            # Update EMA of updates/sec for heartbeat estimations
-            try:
-                env_steps_per_update = (
-                    int(self.ppo_training_params.get("num_envs", 1))
-                    * int(self.ppo_training_params.get("unroll_length", 1))
-                )
-                if env_steps_per_update > 0 and num_steps > self.last_progress_step and time_since_last > 0:
-                    updates_in_interval = (num_steps - self.last_progress_step) / env_steps_per_update
-                    updates_per_sec = updates_in_interval / time_since_last
-                    if self._ema_updates_per_sec is None:
-                        self._ema_updates_per_sec = updates_per_sec
-                    else:
-                        alpha = 0.3
-                        self._ema_updates_per_sec = (
-                            alpha * updates_per_sec + (1 - alpha) * self._ema_updates_per_sec
-                        )
-            except Exception:
-                pass
 
         logger.info(f"[PROGRESS] Step {num_steps}")
         logger.debug(f"[PROGRESS] All metrics: {metrics}")
@@ -245,58 +230,15 @@ class BaseRunner(ABC):
         # Ensure pretty printing for JAX/NumPy types
         _rew = self._to_tb_scalar(metrics.get("eval/episode_reward", np.nan))
         _rew_std = self._to_tb_scalar(metrics.get("eval/episode_reward_std", np.nan))
-        print(f"STEP: {int(num_steps)} reward: {_rew} reward_std: {_rew_std}")
+        print(
+            f"{GREEN} CALLBACK {self.callback_count}/{total_callbacks} | STEP: {int(num_steps)} "
+            f"reward: {_rew} reward_std: {_rew_std} {RESET}"
+        )
         print("-----------")
 
-        # Record for heartbeat
+    # Record for next progress log
         self.last_progress_time = current_time
         self.last_progress_step = int(num_steps)
-
-    def _heartbeat_loop(self):
-        """Background printer that estimates progress between callbacks."""
-        interval = max(0.0, float(self._hb_interval))
-        if interval <= 0.0:
-            return
-        while not self._hb_stop.wait(interval):
-            try:
-                if self.last_progress_time is None:
-                    continue
-                now = time.time()
-                dt = now - self.last_progress_time
-                env_steps_per_update = (
-                    int(self.ppo_training_params.get("num_envs", 1))
-                    * int(self.ppo_training_params.get("unroll_length", 1))
-                )
-                if env_steps_per_update <= 0:
-                    continue
-                ups = self._ema_updates_per_sec or 0.0
-                est_additional_steps = int(env_steps_per_update * ups * dt)
-                est_step = min(self.last_progress_step + est_additional_steps, int(self.num_timesteps))
-                env_sps = env_steps_per_update * ups
-                remaining = max(int(self.num_timesteps) - est_step, 0)
-                eta_sec = (remaining / env_sps) if env_sps > 0 else float('inf')
-                eta_msg = f"~{int(eta_sec)}s" if eta_sec != float('inf') else "unknown"
-                logger.info(
-                    f"[HEARTBEAT] +{dt:.1f}s since last progress | est step {est_step}/{int(self.num_timesteps)} "
-                    f"({(100.0*est_step/max(int(self.num_timesteps),1)):.1f}%) | ups={ups:.2f}/s, env_sps={env_sps:.0f}/s | ETA {eta_msg}"
-                )
-            except Exception:
-                # Keep heartbeat resilient
-                pass
-
-    def _start_heartbeat(self):
-        if self._hb_thread is None and self._hb_interval > 0:
-            self._hb_stop.clear()
-            self._hb_thread = threading.Thread(target=self._heartbeat_loop, name="runner-heartbeat", daemon=True)
-            self._hb_thread.start()
-
-    def _stop_heartbeat(self):
-        try:
-            self._hb_stop.set()
-            if self._hb_thread is not None:
-                self._hb_thread.join(timeout=2.0)
-        finally:
-            self._hb_thread = None
 
     def policy_params_fn(self, current_step, make_policy, params):
         # save checkpoints
@@ -311,9 +253,9 @@ class BaseRunner(ABC):
         orbax_checkpointer.save(path, params, force=True, save_args=save_args)
         
         # Optional ONNX export
-        skip_export = getattr(self.args, "skip_onnx_export", False)
-        if skip_export:
-            logger.info("Skipping ONNX export at checkpoint due to --skip_onnx_export flag")
+        final_only_export = getattr(self.args, "export_on_finish", False)
+        if final_only_export:
+            logger.info("Skipping intermediate ONNX export; final model will be exported at training end.")
         else:
             onnx_export_path = f"{self.output_dir}/{d}_{current_step}.onnx"
             logger.info(f"Exporting ONNX to: {onnx_export_path}")
@@ -340,6 +282,8 @@ class BaseRunner(ABC):
                 logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             )
             logger.addHandler(sh)
+        # Ensure messages aren't duplicated via root logger once we've attached our own handler.
+        logger.propagate = False
         logger.setLevel(logging.INFO)
 
 
@@ -382,6 +326,11 @@ class BaseRunner(ABC):
 
         logger.info(f"{GREEN} Final PPO params:{RESET} {self.ppo_training_params}")
 
+        # Track expected number of callbacks (initial eval counts as 1 when num_evals > 1).
+        num_evals = int(self.ppo_training_params.get("num_evals", 1) or 1)
+        self.expected_callbacks = max(num_evals, 1)
+        self.callback_count = 0
+
         logger.info("Creating training function...")
         train_fn = functools.partial(
             ppo.train,
@@ -400,8 +349,6 @@ class BaseRunner(ABC):
         compilation_start = time.time()
 
         try:
-            # Start background heartbeat to estimate progress between callbacks
-            self._start_heartbeat()
             # use_pmap_on_reset controls whether env resets are parallelized across devices with jax.pmap.
             # Keep it False on CPU/single-device to avoid extra compilation overhead; enable only on
             # multi-accelerator (e.g., TPU or multi-GPU) setups where it helps throughput and seeding.
@@ -417,8 +364,8 @@ class BaseRunner(ABC):
             
             logger.info("=" * 20)
             logger.info(GREEN + "TRAINING COMPLETED SUCCESSFULLY" + RESET)
-            logger.info(f"Total time: {total_time:.2f}s")
-            logger.info(f"Compilation time: {compilation_time:.2f}s")
+            logger.info(f"{GREEN}Total time: {total_time/60:.2f} mins {RESET}")
+            logger.info(f"{GREEN}Compilation time: {compilation_time/60:.2f} mins{RESET}")
             logger.info("=" * 20)
 
             # Optional final export regardless of per-checkpoint skip flag
@@ -436,15 +383,12 @@ class BaseRunner(ABC):
                         self.obs_size,
                         output_path=onnx_export_path,
                     )
-                    logger.info("[FINAL EXPORT] Completed")
+                    logger.info(f"{GREEN}[FINAL EXPORT] Completed{RESET}")
                 except Exception as e:
                     logger.warning(f"[FINAL EXPORT] ONNX export failed: {e}")
         except Exception as e:
             logger.error("=" * 80)
-            logger.error("TRAINING FAILED")
+            logger.error(f"{RED}TRAINING FAILED{RESET}")
             logger.error(f"Error: {e}")
             logger.error("=" * 80)
             raise
-        finally:
-            # Ensure heartbeat stops
-            self._stop_heartbeat()

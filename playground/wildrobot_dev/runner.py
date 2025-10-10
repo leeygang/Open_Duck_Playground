@@ -1,7 +1,7 @@
 """Runs training and evaluation loop for WildRobot and Open Duck Mini
 
-Adds a --debug flag to drastically reduce PPO workload and increase log frequency.
-Adds a --profile flag with presets: 'high' (higher quality) and 'fast' (balanced CPU runtime).
+Provides a --profile flag with presets: 'high' (higher quality), 'fast' (balanced CPU runtime),
+and 'debug' (drastically reduced workload for fast iteration).
 Also prints JAX backend/devices to help diagnose long compile times or missing GPU.
 """
 
@@ -52,7 +52,7 @@ class WildRobotRunner(BaseRunner):
         except Exception as _e:
             print("[JAX] Unable to query devices:", _e)
 
-        # Profiles and debug overrides
+        # Profiles (including a debug preset)
         self.overrided_ppo_params = {}
         profiles = {
             "high": {
@@ -81,33 +81,27 @@ class WildRobotRunner(BaseRunner):
                 "normalize_advantage": True,
                 "num_evals": 1,  # Moderate callback frequency
             },
+            "debug": {
+                # Minimal workload for quick iteration.
+                "num_envs": 1,
+                "unroll_length": 8,
+                "num_minibatches": 1,
+                "batch_size": 8,
+                "num_evals": 1,
+            },
         }
 
         if getattr(args, "profile", None) in profiles:
             sel = args.profile
             self.overrided_ppo_params.update(profiles[sel])
             print(f"[PROFILE] Using '{sel}' PPO overrides: {self.overrided_ppo_params}")
-            if getattr(args, "debug", False):
-                print("[PROFILE] --profile provided; ignoring --debug overrides.")
-        elif getattr(args, "debug", False):
-            # Optional debug overrides to shrink compile/training time drastically
-            self.overrided_ppo_params.update({
-                "num_envs": 1,
-                "unroll_length": 8,
-                "num_minibatches": 1,
-                "batch_size": 8,
-                # More frequent progress callbacks in debug
-                "num_evals": 1,
-            })
-            # Also clamp total timesteps for debug sessions
-            self.num_timesteps = min(self.num_timesteps, 20_000)
-            # Disable domain randomization in debug to avoid vmap over model which
-            # can trigger JAX/device_put issues on some CPU-only setups.
-            self.randomizer = None
-            print("[DEBUG] Using reduced PPO parameters and timesteps for faster iteration.")
-            print("[DEBUG] Domain randomization disabled for stability in debug mode.")
+            if sel == "debug":
+                self.num_timesteps = min(self.num_timesteps, 20_000)
+                self.randomizer = None
+                print("[DEBUG PROFILE] Using reduced PPO parameters and timesteps for faster iteration.")
+                print("[DEBUG PROFILE] Domain randomization disabled for stability in debug mode.")
 
-        # CLI num_evals override takes precedence over profile/debug
+        # CLI num_evals override takes precedence over profile defaults
         if getattr(args, "num_evals", None) is not None:
             self.overrided_ppo_params["num_evals"] = args.num_evals
             print(f"[CLI] Overriding num_evals (callback frequency): {args.num_evals}")
@@ -134,19 +128,9 @@ def main() -> None:
         help="Resume training from this checkpoint",
     )
     parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Reduce PPO workload and increase logging frequency for faster iteration",
-    )
-    parser.add_argument(
         "--cpu",
         action="store_true",
         help="Force JAX to run on CPU (sets JAX_PLATFORM_NAME=cpu). Useful when CUDA is misconfigured.",
-    )
-    parser.add_argument(
-        "--skip_onnx_export",
-        action="store_true",
-        help="Skip ONNX export during checkpoints to avoid TensorFlow/CUDA initialization overhead.",
     )
     parser.add_argument(
         "--no_jit",
@@ -157,25 +141,16 @@ def main() -> None:
         "--export_on_finish",
         action="store_true",
         help=(
-            "Export a single ONNX model when training completes, even if per-checkpoint export is skipped."
-        ),
-    )
-    parser.add_argument(
-        "--heartbeat_interval",
-        type=float,
-        default=60.0,
-        help=(
-            "Seconds between heartbeat logs estimating progress between callbacks. "
-            "Use 0 or negative to disable the heartbeat."
+            "Skip intermediate ONNX exports but emit a final ONNX model when training completes."
         ),
     )
     parser.add_argument(
         "--profile",
-        choices=["high", "fast"],
+        choices=["high", "fast", "debug"],
         default=None,
         help=(
-            "Preset PPO config: 'high' for higher quality (longer runs), 'fast' for balanced CPU runtime. "
-            "If set, takes precedence over --debug."
+            "Preset PPO config: 'high' for higher quality (longer runs), 'fast' for balanced CPU runtime, "
+            "'debug' for minimal workload and higher log frequency."
         ),
     )
     parser.add_argument(
@@ -186,12 +161,9 @@ def main() -> None:
             "Number of evaluation iterations (controls progress callback frequency). "
             "Training is divided into num_evals iterations, with a callback after each. "
             "Higher values = more frequent callbacks but smaller steps per callback. "
-            "If not set, uses profile/debug default."
+            "If not set, uses the profile default."
         ),
     )
-    # parser.add_argument(
-    #     "--debug", action="store_true", help="Run in debug mode with minimal parameters"
-    # )
     args = parser.parse_args()
 
     if args.cpu:
@@ -200,7 +172,7 @@ def main() -> None:
         print("[Runner] Forcing JAX to CPU via JAX_PLATFORM_NAME=cpu")
 
     # Optional: show JAX compile logs when debugging with JIT enabled
-    if args.debug and not args.no_jit:
+    if getattr(args, "profile", None) == "debug" and not args.no_jit:
         os.environ.setdefault("JAX_LOG_COMPILES", "1")
 
     runner = WildRobotRunner(args)
