@@ -1,21 +1,7 @@
 """Runs training and evaluation loop for WildRobot and Open Duck Mini
 
 Adds a --debug flag to drastically reduce PPO workload and increase log frequency.
-Adds a --profile flag with    parser.add_argument(
-        "--num_evals",
-        type=int,
-        default=None,
-        help=(
-            "Number of evaluation iterations (controls progress callback frequency). "
-            "Training is divided into num_evals iterations, with a callback after each. "
-            "Higher values = more frequent callbacks but smaller steps per callback. "
-            "If not set, uses profile/debug default."
-        ),
-    )
-    # parser.add_argument(
-    #     "--debug", action="store_true", help="Run in debug mode with minimal parameters"
-    # )
-    args = parser.parse_args()gh' (higher quality) and 'fast' (balanced CPU runtime).
+Adds a --profile flag with presets: 'high' (higher quality) and 'fast' (balanced CPU runtime).
 Also prints JAX backend/devices to help diagnose long compile times or missing GPU.
 """
 
@@ -193,12 +179,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--log_frequency",
+        "--num_evals",
         type=int,
-        default=1,
+        default=None,
         help=(
-            "How many PPO updates between progress callbacks. Lower values = more frequent logging. "
-            "If not set, uses profile/debug default. Set to 1 for per-update logging."
+            "Number of evaluation iterations (controls progress callback frequency). "
+            "Training is divided into num_evals iterations, with a callback after each. "
+            "Higher values = more frequent callbacks but smaller steps per callback. "
+            "If not set, uses profile/debug default."
         ),
     )
     # parser.add_argument(
