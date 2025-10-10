@@ -1,7 +1,21 @@
 """Runs training and evaluation loop for WildRobot and Open Duck Mini
 
 Adds a --debug flag to drastically reduce PPO workload and increase log frequency.
-Adds a --profile flag with presets: 'high' (higher quality) and 'fast' (balanced CPU runtime).
+Adds a --profile flag with    parser.add_argument(
+        "--num_evals",
+        type=int,
+        default=None,
+        help=(
+            "Number of evaluation iterations (controls progress callback frequency). "
+            "Training is divided into num_evals iterations, with a callback after each. "
+            "Higher values = more frequent callbacks but smaller steps per callback. "
+            "If not set, uses profile/debug default."
+        ),
+    )
+    # parser.add_argument(
+    #     "--debug", action="store_true", help="Run in debug mode with minimal parameters"
+    # )
+    args = parser.parse_args()gh' (higher quality) and 'fast' (balanced CPU runtime).
 Also prints JAX backend/devices to help diagnose long compile times or missing GPU.
 """
 
@@ -66,7 +80,7 @@ class WildRobotRunner(BaseRunner):
                 "gae_lambda": 0.95,
                 "entropy_cost": 1e-3,
                 "normalize_advantage": True,
-                "log_frequency": 100,
+                "num_evals": 100,  # More frequent progress callbacks
             },
             "fast": {
                 # Balanced runtime/quality for CPU with JIT.
@@ -79,7 +93,7 @@ class WildRobotRunner(BaseRunner):
                 "gae_lambda": 0.95,
                 "entropy_cost": 1e-3,
                 "normalize_advantage": True,
-                "log_frequency": 1,
+                "num_evals": 1,  # Moderate callback frequency
             },
         }
 
@@ -96,8 +110,8 @@ class WildRobotRunner(BaseRunner):
                 "unroll_length": 8,
                 "num_minibatches": 1,
                 "batch_size": 8,
-                # Make logging very frequent so progress is visible
-                "log_frequency": 1,
+                # More frequent progress callbacks in debug
+                "num_evals": 1,
             })
             # Also clamp total timesteps for debug sessions
             self.num_timesteps = min(self.num_timesteps, 20_000)
@@ -107,10 +121,10 @@ class WildRobotRunner(BaseRunner):
             print("[DEBUG] Using reduced PPO parameters and timesteps for faster iteration.")
             print("[DEBUG] Domain randomization disabled for stability in debug mode.")
 
-        # CLI log_frequency override takes precedence over profile/debug
-        if getattr(args, "log_frequency", None) is not None:
-            self.overrided_ppo_params["log_frequency"] = args.log_frequency
-            print(f"[CLI] Overriding log_frequency: {args.log_frequency}")
+        # CLI num_evals override takes precedence over profile/debug
+        if getattr(args, "num_evals", None) is not None:
+            self.overrided_ppo_params["num_evals"] = args.num_evals
+            print(f"[CLI] Overriding num_evals (callback frequency): {args.num_evals}")
 
         print(f"Observation size: {self.obs_size}")
 
@@ -181,7 +195,7 @@ def main() -> None:
     parser.add_argument(
         "--log_frequency",
         type=int,
-        default=None,
+        default=1,
         help=(
             "How many PPO updates between progress callbacks. Lower values = more frequent logging. "
             "If not set, uses profile/debug default. Set to 1 for per-update logging."
