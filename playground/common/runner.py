@@ -26,6 +26,9 @@ import numpy as np
 
 from playground.common.export_onnx import export_onnx
 
+# ANSI color codes
+GREEN = '\033[92m'
+RESET = '\033[0m'
 
 # Enable verbose logging
 logging.basicConfig(
@@ -164,7 +167,7 @@ class BaseRunner(ABC):
                 return None
 
     def progress_callback(self, num_steps: int, metrics: dict) -> None:
-        logger.info("[BASE RUNNER] progress_callback")
+        logger.info(GREEN +"[BASE RUNNER] progress_callback" + RESET)
         
         current_time = time.time()
         if self.last_progress_time is not None:
@@ -303,9 +306,11 @@ class BaseRunner(ABC):
             logger.addHandler(sh)
         logger.setLevel(logging.INFO)
 
-        logger.info("=" * 80)
-        logger.info("STARTING TRAINING")
-        logger.info("=" * 80)
+
+
+        logger.info("=" * 20)
+        logger.info(GREEN + "STARTING TRAINING" + RESET)
+        logger.info("=" * 20)
         
         self.start_time = time.time()
         logger.info("Loading PPO configuration...")
@@ -339,7 +344,7 @@ class BaseRunner(ABC):
                     f"Ignoring unknown PPO param override '{k}' for this Brax version"
                 )
 
-        logger.info(f"Final PPO params: {self.ppo_training_params}")
+        logger.info(f"{GREEN} Final PPO params:{RESET} {self.ppo_training_params}")
 
         logger.info("Creating training function...")
         train_fn = functools.partial(
@@ -352,9 +357,9 @@ class BaseRunner(ABC):
             restore_checkpoint_path=self.restore_checkpoint_path,
         )
         
-        logger.info("=" * 80)
-        logger.info("STARTING JAX COMPILATION (this may take several minutes)...")
-        logger.info("=" * 80)
+        logger.info("=" * 20)
+        logger.info(GREEN + "STARTING JAX COMPILATION (this may take several minutes)..." + RESET)
+        logger.info("=" * 20)
 
         compilation_start = time.time()
 
@@ -374,11 +379,11 @@ class BaseRunner(ABC):
             total_time = time.time() - self.start_time
             compilation_time = time.time() - compilation_start
             
-            logger.info("=" * 80)
-            logger.info("TRAINING COMPLETED SUCCESSFULLY")
+            logger.info("=" * 20)
+            logger.info(GREEN + "TRAINING COMPLETED SUCCESSFULLY" + RESET)
             logger.info(f"Total time: {total_time:.2f}s")
             logger.info(f"Compilation time: {compilation_time:.2f}s")
-            logger.info("=" * 80)
+            logger.info("=" * 20)
 
             # Optional final export regardless of per-checkpoint skip flag
             if getattr(self.args, "export_on_finish", False):
