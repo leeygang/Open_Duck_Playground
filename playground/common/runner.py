@@ -328,7 +328,6 @@ class BaseRunner(ABC):
             network_factory = ppo_networks.make_ppo_networks
         
         self.ppo_training_params["num_timesteps"] = self.num_timesteps
-        logger.info(f"Setting num_timesteps to: {self.num_timesteps}")
         logger.info(f"Base PPO params: {self.ppo_training_params}")
         
         for k, v in self.overrided_ppo_params.items():
@@ -341,11 +340,6 @@ class BaseRunner(ABC):
                 )
 
         logger.info(f"Final PPO params: {self.ppo_training_params}")
-        logger.info(f"About to train with num_timesteps: {self.ppo_training_params.get('num_timesteps')}")
-
-        # Ensure command-line num_timesteps takes absolute precedence
-        self.ppo_training_params["num_timesteps"] = self.num_timesteps
-        logger.info(f"FINAL OVERRIDE: num_timesteps set to {self.num_timesteps}")
 
         logger.info("Creating training function...")
         train_fn = functools.partial(

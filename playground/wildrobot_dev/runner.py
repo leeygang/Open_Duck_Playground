@@ -79,7 +79,7 @@ class WildRobotRunner(BaseRunner):
                 "gae_lambda": 0.95,
                 "entropy_cost": 1e-3,
                 "normalize_advantage": True,
-                "log_frequency": 50,
+                "log_frequency": 1,
             },
         }
 
@@ -106,6 +106,11 @@ class WildRobotRunner(BaseRunner):
             self.randomizer = None
             print("[DEBUG] Using reduced PPO parameters and timesteps for faster iteration.")
             print("[DEBUG] Domain randomization disabled for stability in debug mode.")
+
+        # CLI log_frequency override takes precedence over profile/debug
+        if getattr(args, "log_frequency", None) is not None:
+            self.overrided_ppo_params["log_frequency"] = args.log_frequency
+            print(f"[CLI] Overriding log_frequency: {args.log_frequency}")
 
         print(f"Observation size: {self.obs_size}")
 
@@ -171,6 +176,15 @@ def main() -> None:
         help=(
             "Preset PPO config: 'high' for higher quality (longer runs), 'fast' for balanced CPU runtime. "
             "If set, takes precedence over --debug."
+        ),
+    )
+    parser.add_argument(
+        "--log_frequency",
+        type=int,
+        default=None,
+        help=(
+            "How many PPO updates between progress callbacks. Lower values = more frequent logging. "
+            "If not set, uses profile/debug default. Set to 1 for per-update logging."
         ),
     )
     # parser.add_argument(
