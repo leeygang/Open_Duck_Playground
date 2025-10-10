@@ -156,6 +156,15 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--heartbeat_interval",
+        type=float,
+        default=60.0,
+        help=(
+            "Seconds between heartbeat logs estimating progress between callbacks. "
+            "Use 0 or negative to disable the heartbeat."
+        ),
+    )
+    parser.add_argument(
         "--profile",
         choices=["high", "fast"],
         default=None,

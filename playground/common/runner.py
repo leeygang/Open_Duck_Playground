@@ -17,6 +17,7 @@ import os
 import sys
 import time
 import logging
+import threading
 from brax.training.agents.ppo import networks as ppo_networks, train as ppo
 from mujoco_playground import wrapper
 from mujoco_playground.config import locomotion_params
@@ -74,7 +75,11 @@ class BaseRunner(ABC):
         # Timing
         self.start_time = None
         self.last_progress_time = None
-
+        self.last_progress_step = 0
+        self._ema_updates_per_sec = None
+        self._hb_stop = threading.Event()
+        self._hb_thread = None
+        self._hb_interval = float(getattr(self.args, "heartbeat_interval", 5.0))
         # CACHE STUFF (import jax here so env variables like JAX_PLATFORM_NAME set by callers take effect)
         os.makedirs(".tmp", exist_ok=True)
         import jax  # local import to honor prior env like JAX_PLATFORM_NAME
@@ -165,6 +170,24 @@ class BaseRunner(ABC):
         if self.last_progress_time is not None:
             time_since_last = current_time - self.last_progress_time
             logger.info(f"Time since last progress: {time_since_last:.2f}s")
+            # Update EMA of updates/sec for heartbeat estimations
+            try:
+                env_steps_per_update = (
+                    int(self.ppo_training_params.get("num_envs", 1))
+                    * int(self.ppo_training_params.get("unroll_length", 1))
+                )
+                if env_steps_per_update > 0 and num_steps > self.last_progress_step and time_since_last > 0:
+                    updates_in_interval = (num_steps - self.last_progress_step) / env_steps_per_update
+                    updates_per_sec = updates_in_interval / time_since_last
+                    if self._ema_updates_per_sec is None:
+                        self._ema_updates_per_sec = updates_per_sec
+                    else:
+                        alpha = 0.3
+                        self._ema_updates_per_sec = (
+                            alpha * updates_per_sec + (1 - alpha) * self._ema_updates_per_sec
+                        )
+            except Exception:
+                pass
 
         logger.info(f"[PROGRESS] Step {num_steps}")
         logger.debug(f"[PROGRESS] All metrics: {metrics}")
@@ -185,6 +208,56 @@ class BaseRunner(ABC):
         _rew_std = self._to_tb_scalar(metrics.get("eval/episode_reward_std", np.nan))
         print(f"STEP: {int(num_steps)} reward: {_rew} reward_std: {_rew_std}")
         print("-----------")
+
+        # Record for heartbeat
+        self.last_progress_time = current_time
+        self.last_progress_step = int(num_steps)
+
+    def _heartbeat_loop(self):
+        """Background printer that estimates progress between callbacks."""
+        interval = max(0.0, float(self._hb_interval))
+        if interval <= 0.0:
+            return
+        while not self._hb_stop.wait(interval):
+            try:
+                if self.last_progress_time is None:
+                    continue
+                now = time.time()
+                dt = now - self.last_progress_time
+                env_steps_per_update = (
+                    int(self.ppo_training_params.get("num_envs", 1))
+                    * int(self.ppo_training_params.get("unroll_length", 1))
+                )
+                if env_steps_per_update <= 0:
+                    continue
+                ups = self._ema_updates_per_sec or 0.0
+                est_additional_steps = int(env_steps_per_update * ups * dt)
+                est_step = min(self.last_progress_step + est_additional_steps, int(self.num_timesteps))
+                env_sps = env_steps_per_update * ups
+                remaining = max(int(self.num_timesteps) - est_step, 0)
+                eta_sec = (remaining / env_sps) if env_sps > 0 else float('inf')
+                eta_msg = f"~{int(eta_sec)}s" if eta_sec != float('inf') else "unknown"
+                logger.info(
+                    f"[HEARTBEAT] +{dt:.1f}s since last progress | est step {est_step}/{int(self.num_timesteps)} "
+                    f"({(100.0*est_step/max(int(self.num_timesteps),1)):.1f}%) | ups={ups:.2f}/s, env_sps={env_sps:.0f}/s | ETA {eta_msg}"
+                )
+            except Exception:
+                # Keep heartbeat resilient
+                pass
+
+    def _start_heartbeat(self):
+        if self._hb_thread is None and self._hb_interval > 0:
+            self._hb_stop.clear()
+            self._hb_thread = threading.Thread(target=self._heartbeat_loop, name="runner-heartbeat", daemon=True)
+            self._hb_thread.start()
+
+    def _stop_heartbeat(self):
+        try:
+            self._hb_stop.set()
+            if self._hb_thread is not None:
+                self._hb_thread.join(timeout=2.0)
+        finally:
+            self._hb_thread = None
 
     def policy_params_fn(self, current_step, make_policy, params):
         # save checkpoints
@@ -286,6 +359,8 @@ class BaseRunner(ABC):
         compilation_start = time.time()
 
         try:
+            # Start background heartbeat to estimate progress between callbacks
+            self._start_heartbeat()
             # use_pmap_on_reset controls whether env resets are parallelized across devices with jax.pmap.
             # Keep it False on CPU/single-device to avoid extra compilation overhead; enable only on
             # multi-accelerator (e.g., TPU or multi-GPU) setups where it helps throughput and seeding.
@@ -329,3 +404,6 @@ class BaseRunner(ABC):
             logger.error(f"Error: {e}")
             logger.error("=" * 80)
             raise
+        finally:
+            # Ensure heartbeat stops
+            self._stop_heartbeat()
