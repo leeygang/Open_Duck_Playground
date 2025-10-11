@@ -10,7 +10,6 @@ from playground.common.poly_reference_motion_numpy import PolyReferenceMotion
 from playground.common.utils import LowPassActionFilter
 
 from playground.wildrobot_dev.mujoco_infer_base import MJInferBase
-from playground.wildrobot_dev import constants as wr_constants
 
 USE_MOTOR_SPEED_LIMITS = True
 
@@ -204,42 +203,20 @@ class MjInfer(MJInferBase):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--onnx_model_path", type=str, default=None,
-                        help="Path to ONNX model; if omitted, uses output/<env>_<task>.onnx")
+    parser.add_argument("-o", "--onnx_model_path", type=str, required=True)
+    # parser.add_argument("-k", action="store_true", default=False)
     parser.add_argument(
         "--model_path",
         type=str,
-        default=None,
-        help="Path to MuJoCo XML; if omitted, resolved from task via constants.task_to_xml(task)")
+        default="playground/wildrobot_dev/xmls/robot_leg/scene_flat_terrain.xml",
+    )
     parser.add_argument("--standing", action="store_true", default=True)
     parser.add_argument("--task", type=str, default="wildrobot_terrain", help="Task name matching ROBOT_CONFIGS key")
-    parser.add_argument("--env", type=str, default="standing", help="Env name used for ONNX filename (default: standing)")
 
     args = parser.parse_args()
 
-    # Resolve defaults for model and ONNX paths
-    from pathlib import Path
-    if args.model_path is None:
-        try:
-            xml_path = wr_constants.task_to_xml(args.task)
-            model_path = str(xml_path)
-        except Exception as _e:
-            raise SystemExit(f"Unable to resolve XML for task '{args.task}': {_e}")
-    else:
-        model_path = args.model_path
-
-    if args.onnx_model_path is None:
-        # Use unified filename policy from training: output/<env>_<task>.onnx
-        output_root = Path("output")
-        auto_onnx = output_root / f"{args.env}_{args.task}.onnx"
-        onnx_path = str(auto_onnx)
-    else:
-        onnx_path = args.onnx_model_path
-
-    print(f"[INFER] XML: {model_path}")
-    print(f"[INFER] ONNX: {onnx_path}")
-    if not Path(onnx_path).exists():
-        print(f"[WARN] ONNX file not found at {onnx_path}. Ensure training exported the model or pass -o explicitly.")
-
-    mjinfer = MjInfer(model_path, onnx_path, args.standing, args.task)
+    print(f"params: {args}")
+    mjinfer = MjInfer(
+        args.model_path, args.onnx_model_path, args.standing, args.task
+    )
     mjinfer.run()
