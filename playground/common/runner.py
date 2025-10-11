@@ -272,7 +272,7 @@ class BaseRunner(ABC):
                 except Exception:
                     pass
 
-                logger.info(f"Exporting ONNX to: {target_path}")
+                logger.info(f"{YELLOW} Exporting ONNX to: {target_path} {RESET}")
                 export_onnx(
                     params,
                     self.action_size,
@@ -280,9 +280,9 @@ class BaseRunner(ABC):
                     self.obs_size,
                     output_path=str(target_path),
                 )
-                logger.info("Checkpoint and ONNX export completed")
+                logger.info("{GREEN} Checkpoint and ONNX export completed {RESET}")
             except Exception as e:
-                logger.warning(f"ONNX export failed or was interrupted: {e}. Continuing training.")
+                logger.warning(f"{YELLOW}ONNX export failed or was interrupted: {e}. Continuing training.{RESET}")
         else:
             logger.info("Skipping intermediate ONNX export; final model will be exported at training end.")
 
