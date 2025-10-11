@@ -167,10 +167,30 @@ class WildRobotRunner(BaseRunner):
             env_name = getattr(self.args, "env", "env")
             target_name = f"{task_name}_{env_name}.onnx"
             target_path = output_root / target_name
-            shutil.copy2(latest_onnx, target_path)
-            print(f"[Runner Override] Copied ONNX to {target_path}")
+
+            # If target exists, replace it to keep latest
+            try:
+                if target_path.exists():
+                    target_path.unlink()
+            except Exception:
+                pass
+
+            # Move the ONNX out of checkpoints so we don't keep the original there
+            shutil.move(str(latest_onnx), str(target_path))
+            print(f"[Runner Override] Moved ONNX to {target_path}")
+
+            # Best-effort cleanup: remove any other stale .onnx in checkpoints
+            removed = 0
+            for p in out_dir.glob("*.onnx"):
+                try:
+                    p.unlink()
+                    removed += 1
+                except Exception:
+                    pass
+            if removed:
+                print(f"[Runner Override] Removed {removed} stale ONNX file(s) from {out_dir}")
         except Exception as _e:
-            print("[Runner Override] Failed to copy ONNX to task folder:", _e)
+            print("[Runner Override] Failed to move ONNX to output folder:", _e)
 
 
 def main() -> None:
