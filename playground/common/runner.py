@@ -252,24 +252,39 @@ class BaseRunner(ABC):
         
         orbax_checkpointer.save(path, params, force=True, save_args=save_args)
         
-        # Optional ONNX export
-        final_only_export = getattr(self.args, "export_on_finish", False)
-        if final_only_export:
-            logger.info("Skipping intermediate ONNX export; final model will be exported at training end.")
-        else:
-            onnx_export_path = f"{self.output_dir}/{d}_{current_step}.onnx"
-            logger.info(f"Exporting ONNX to: {onnx_export_path}")
+        # Optional ONNX export with unified filename policy: <env>_<task>.onnx under output root.
+        export_final_only = getattr(self.args, "export_on_finish", False)
+        if not export_final_only:
             try:
+                # Resolve output root (parent of 'checkpoints' if applicable)
+                out_dir = Path(self.output_dir)
+                output_root = out_dir.parent if out_dir.name == "checkpoints" else out_dir
+                output_root.mkdir(parents=True, exist_ok=True)
+
+                env_name = getattr(self.args, "env", "env")
+                task_name = getattr(self.args, "task", "task")
+                target_path = output_root / f"{env_name}_{task_name}.onnx"
+
+                # Replace existing file to keep the latest
+                try:
+                    if target_path.exists():
+                        target_path.unlink()
+                except Exception:
+                    pass
+
+                logger.info(f"Exporting ONNX to: {target_path}")
                 export_onnx(
                     params,
                     self.action_size,
                     self.ppo_params,
-                    self.obs_size,  # may not work
-                    output_path=onnx_export_path
+                    self.obs_size,
+                    output_path=str(target_path),
                 )
                 logger.info("Checkpoint and ONNX export completed")
             except Exception as e:
                 logger.warning(f"ONNX export failed or was interrupted: {e}. Continuing training.")
+        else:
+            logger.info("Skipping intermediate ONNX export; final model will be exported at training end.")
 
     def train(self) -> None:
         # Ensure INFO logs are visible by (re)adding a StreamHandler to stdout
@@ -371,8 +386,18 @@ class BaseRunner(ABC):
             # Optional final export regardless of per-checkpoint skip flag
             if getattr(self.args, "export_on_finish", False):
                 try:
-                    d = datetime.now().strftime("%Y_%m_%d_%H%M%S")
-                    onnx_export_path = f"{self.output_dir}/{d}_final.onnx"
+                    # Use the same unified filename and location as intermediate exports
+                    out_dir = Path(self.output_dir)
+                    output_root = out_dir.parent if out_dir.name == "checkpoints" else out_dir
+                    output_root.mkdir(parents=True, exist_ok=True)
+                    env_name = getattr(self.args, "env", "env")
+                    task_name = getattr(self.args, "task", "task")
+                    onnx_export_path = output_root / f"{env_name}_{task_name}.onnx"
+                    try:
+                        if onnx_export_path.exists():
+                            onnx_export_path.unlink()
+                    except Exception:
+                        pass
                     logger.info(
                         f"[FINAL EXPORT] Exporting ONNX at training end to: {onnx_export_path}"
                     )
@@ -381,7 +406,7 @@ class BaseRunner(ABC):
                         self.action_size,
                         self.ppo_params,
                         self.obs_size,
-                        output_path=onnx_export_path,
+                        output_path=str(onnx_export_path),
                     )
                     logger.info(f"{GREEN}[FINAL EXPORT] Completed{RESET}")
                 except Exception as e:

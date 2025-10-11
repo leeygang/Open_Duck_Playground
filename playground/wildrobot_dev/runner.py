@@ -136,49 +136,7 @@ class WildRobotRunner(BaseRunner):
 
         print(f"Observation size: {self.obs_size}")
 
-    # Also export ONNX directly to the output root (parent of 'checkpoints')
-    # instead of keeping a copy in the checkpoints directory.
-    def policy_params_fn(self, current_step, make_policy, params):
-        # First, call the base implementation to save checkpoint but skip its ONNX export
-        try:
-            orig_flag = getattr(self.args, "export_on_finish", False)
-            setattr(self.args, "export_on_finish", True)
-            super().policy_params_fn(current_step, make_policy, params)
-        except Exception as _e:
-            print("[Runner Override] Base policy_params_fn failed:", _e)
-        finally:
-            try:
-                setattr(self.args, "export_on_finish", orig_flag)
-            except Exception:
-                pass
-
-        # Export ONNX directly to output root as <task>_<env>.onnx
-        try:
-            out_dir = Path(self.output_dir)
-            output_root = out_dir.parent if out_dir.name == "checkpoints" else out_dir
-            output_root.mkdir(parents=True, exist_ok=True)
-
-            task_name = getattr(self.args, "task", "task")
-            env_name = getattr(self.args, "env", "env")
-            target_path = output_root / f"{task_name}_{env_name}.onnx"
-
-            # Best-effort remove existing file to avoid partial overwrite issues
-            try:
-                if target_path.exists():
-                    target_path.unlink()
-            except Exception:
-                pass
-
-            export_onnx(
-                params,
-                self.action_size,
-                self.ppo_params,
-                self.obs_size,
-                output_path=str(target_path),
-            )
-            print(f"[Runner Override] Exported ONNX to {target_path}")
-        except Exception as _e:
-            print("[Runner Override] Failed to export ONNX to output root:", _e)
+    # No policy_params_fn override needed; BaseRunner handles checkpoints and ONNX export.
 
 
 def main() -> None:
