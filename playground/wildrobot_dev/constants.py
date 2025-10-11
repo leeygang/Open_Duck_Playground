@@ -22,9 +22,10 @@ from typing import List
 ROOT_PATH = epath.Path(__file__).parent
 FLAT_TERRAIN_XML = ROOT_PATH / "xmls" / "robot_leg" / "scene_flat_terrain.xml"
 ROUGH_TERRAIN_XML = ROOT_PATH / "xmls" / "robot_leg" / "scene_rough_terrain.xml"
+WILDROBOT_FLAT_TERRAIN_XML = ROOT_PATH / "xmls" / "wildrobot" / "scene_flat_terrain.xml"
 DUCK_TERRAIN_XML = ROOT_PATH / "../open_duck_mini_v2" /"xmls" / "scene_flat_terrain.xml"
 
-tasks = ["duck_terrain", "leg_terrain"]
+tasks = ["duck_terrain", "leg_terrain", "wildrobot_terrain"]
 
 def is_valid_task(task_name: str) -> bool:
     return task_name in tasks
@@ -33,15 +34,35 @@ def task_to_xml(task_name: str) -> epath.Path:
     return {
         "duck_terrain": DUCK_TERRAIN_XML,
         "leg_terrain": FLAT_TERRAIN_XML,
+        "wildrobot_terrain": WILDROBOT_FLAT_TERRAIN_XML,
     }[task_name]
 
 
-from dataclasses import dataclass
-from typing import List
-
 @dataclass
 class RobotConfig:
-    """Configuration for a single robot."""
+    """Configuration for a single robot.
+
+    Notes on feet_sites vs feet_geoms:
+    - feet_sites: Named MuJoCo sites attached to foot bodies. Use these for
+        kinematic queries (positions/orientations via data.site_xpos/site_xmat)
+        and site-anchored sensors (e.g., "<site>_global_linvel"). These are
+        typically used for swing height/peak detection and privileged features
+        that need clean reference frames.
+
+    - left_feet_geoms / right_feet_geoms (and the feet_geoms property): MuJoCo
+        collision geoms that actually make contact with the floor. There can be
+        multiple geoms per foot (e.g., front/back pads). Use these to build
+        contact flags (e.g., via geoms_colliding for each geom) and to drive
+        air-time/last_contact-like signals. You may OR the geoms belonging to the
+        same foot to obtain per-foot contact flags when needed.
+
+    Cardinality warning:
+    - len(feet_sites) may differ from len(feet_geoms). Avoid mixing arrays
+        derived from sites and geoms without aligning their shapes. If you need
+        per-foot contacts to match per-site arrays, aggregate per-foot geoms
+        first (e.g., OR all geoms of the same foot) to prevent broadcasting
+        mismatches.
+    """
     # Feet and contact geoms
     feet_sites: List[str]
     left_feet_geoms: List[str]
@@ -141,6 +162,57 @@ ROBOT_CONFIGS = {
         local_linvel_sensor="local_linvel",
         accelerometer_sensors=["accelerometer"],
         gyro_sensors=["gyro"],
+    ),
+    # Updated to reflect wild_robot/constants.py
+    "wildrobot_terrain": RobotConfig(
+        trunk_imu="trunk_imu",
+        feet_sites=[
+            "left_foot_site",
+            "right_foot_site",
+        ],
+        left_feet_geoms=[
+            "left_foot_btm_front",
+            "left_foot_btm_back",
+        ],
+        right_feet_geoms=[
+            "right_foot_btm_front",
+            "right_foot_btm_back",
+        ],
+        hip_joint_names=[
+            "left_waist_hip",
+            "left_hip",
+            "right_waist_hip",
+            "right_hip",
+        ],
+        knee_joint_names=["left_knee", "right_knee"],
+        joints_order_no_head=[
+            "waist",
+            "left_waist_hip",
+            "left_hip",
+            "left_knee",
+            "left_ankle",
+            "left_foot",
+            "right_waist_hip",
+            "right_hip",
+            "right_knee",
+            "right_ankle",
+            "right_foot",
+        ],
+        root_body="waist",
+        gravity_sensor="trunk_upvector",
+        global_linvel_sensor="trunk_global_linvel",
+        global_angvel_sensor="trunk_global_angvel",
+        local_linvel_sensor="trunk_local_linvel",
+        accelerometer_sensors=[
+            "trunk_accelerometer",
+            "left_leg_accelerometer",
+            "right_leg_accelerometer",
+        ],
+        gyro_sensors=[
+            "trunk_gyro",
+            "left_leg_gyro",
+            "right_leg_gyro",
+        ],
     ),
 }
 

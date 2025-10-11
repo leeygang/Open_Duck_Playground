@@ -26,6 +26,9 @@ fi
 
 echo "Using Python: $PYTHON_CMD"
 
+echo "Remove assets folder"
+rm -rf assets
+
 # Step 1: Run onshape-to-robot
 echo ""
 echo "Running onshape-to-robot..."

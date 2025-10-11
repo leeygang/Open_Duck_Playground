@@ -175,6 +175,13 @@ class Standing(wild_robot_base.WildRobotEnv):
         self._feet_geom_id = np.array(
             [self._mj_model.geom(name).id for name in self.robot_config.feet_geoms]
         )
+        # Number of contact geoms for dynamic sizing of buffers (must match contact vector)
+        self._n_contacts = int(len(self._feet_geom_id))
+        # Number of feet (sites) used for kinematic measures like swing height
+        self._n_feet = int(len(self._feet_site_id))
+        # Per-side contact geom counts to aggregate contacts to feet
+        self._n_left_contacts = int(len(self.robot_config.left_feet_geoms))
+        self._n_right_contacts = int(len(self.robot_config.right_feet_geoms))
 
         # foot sensor for debug
         foot_linvel_sensor_adr = []
@@ -289,9 +296,10 @@ class Standing(wild_robot_base.WildRobotEnv):
             "last_last_act": jp.zeros(self.mjx_model.nu),
             "last_last_last_act": jp.zeros(self.mjx_model.nu),
             "motor_targets": jp.zeros(self.mjx_model.nu),
-            "feet_air_time": jp.zeros(2),
-            "last_contact": jp.zeros(2, dtype=bool),
-            "swing_peak": jp.zeros(2),
+            "feet_air_time": jp.zeros(self._n_contacts),
+            "last_contact": jp.zeros(self._n_contacts, dtype=bool),
+            # swing_peak is per-foot (per site), not per contact geom
+            "swing_peak": jp.zeros(self._n_feet),
             # Push related.
             "push": jp.array([0.0, 0.0]),
             "push_step": 0,
@@ -431,9 +439,20 @@ class Standing(wild_robot_base.WildRobotEnv):
             0,
             state.info["step"],
         )
+        # Reset per-geom timers and last-contact
         state.info["feet_air_time"] *= ~contact
         state.info["last_contact"] = contact
-        state.info["swing_peak"] *= ~contact
+        # Aggregate geom contacts to per-foot to reset swing_peak appropriately
+        if self._n_feet == 1:
+            left_any = jp.any(contact[: self._n_left_contacts]) if self._n_left_contacts > 0 else jp.array(False)
+            per_foot_contact = jp.array([left_any])
+        else:
+            left_any = jp.any(contact[: self._n_left_contacts]) if self._n_left_contacts > 0 else jp.array(False)
+            right_any = jp.any(
+                contact[self._n_left_contacts : self._n_left_contacts + self._n_right_contacts]
+            ) if self._n_right_contacts > 0 else jp.array(False)
+            per_foot_contact = jp.array([left_any, right_any])
+        state.info["swing_peak"] *= ~per_foot_contact
         for k, v in rewards.items():
             rew_scale = self._config.reward_config.scales[k]
             if rew_scale != 0:

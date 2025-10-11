@@ -22,12 +22,8 @@
     <framelinvel objtype="site" objname="left_leg_imu" name="left_leg_global_linvel"/>
     <frameangvel objtype="site" objname="left_leg_imu" name="left_leg_global_angvel" />
 
-    <framelinvel objtype="site" objname="right_foot_front" name="right_foot_front_global_linvel"/>
-    <framelinvel objtype="site" objname="right_foot_back" name="right_foot_back_global_linvel"/>
-    <framelinvel objtype="site" objname="left_foot_front" name="left_foot_front_global_linvel"/>
-    <framelinvel objtype="site" objname="left_foot_back" name="left_foot_back_global_linvel"/>
-    <frameangvel objtype="site" objname="right_foot_front" name="right_foot_front_global_angvel"/>
-    <frameangvel objtype="site" objname="right_foot_back" name="right_foot_back_global_angvel"/>
-    <frameangvel objtype="site" objname="left_foot_front" name="left_foot_front_global_angvel"/>
-    <frameangvel objtype="site" objname="left_foot_back" name="left_foot_back_global_angvel"/>
+    <framelinvel objtype="site" objname="right_foot_site" name="right_foot_site_global_linvel"/>
+    <framelinvel objtype="site" objname="left_foot_site" name="left_foot_site_global_linvel"/>
+    <frameangvel objtype="site" objname="left_foot_site" name="left_foot_site_global_angvel"/>
+    <frameangvel objtype="site" objname="right_foot_site" name="right_foot_site_global_angvel"/>
 </sensor>

@@ -33,14 +33,10 @@
     <frameangvel objtype="site" objname="right_leg_imu" name="right_leg_global_angvel" />
     <framelinvel objtype="site" objname="left_leg_imu" name="left_leg_global_linvel" />
     <frameangvel objtype="site" objname="left_leg_imu" name="left_leg_global_angvel" />
-    <framelinvel objtype="site" objname="right_foot_front" name="right_foot_front_global_linvel" />
-    <framelinvel objtype="site" objname="right_foot_back" name="right_foot_back_global_linvel" />
-    <framelinvel objtype="site" objname="left_foot_front" name="left_foot_front_global_linvel" />
-    <framelinvel objtype="site" objname="left_foot_back" name="left_foot_back_global_linvel" />
-    <frameangvel objtype="site" objname="right_foot_front" name="right_foot_front_global_angvel" />
-    <frameangvel objtype="site" objname="right_foot_back" name="right_foot_back_global_angvel" />
-    <frameangvel objtype="site" objname="left_foot_front" name="left_foot_front_global_angvel" />
-    <frameangvel objtype="site" objname="left_foot_back" name="left_foot_back_global_angvel" />
+    <framelinvel objtype="site" objname="right_foot_site" name="right_foot_site_global_linvel"/>
+    <framelinvel objtype="site" objname="left_foot_site" name="left_foot_site_global_linvel"/>
+    <frameangvel objtype="site" objname="left_foot_site" name="left_foot_site_global_angvel"/>
+    <frameangvel objtype="site" objname="right_foot_site" name="right_foot_site_global_angvel"/>
   </sensor>
   <default>
     <default class="lobotServo">
@@ -116,8 +112,7 @@
                   <geom type="mesh" class="visual" pos="-0.0128254 0.000185294 0.0255108" quat="0.499502 0.500498 0.499915 0.500085" mesh="foot_main" material="foot_main_material" />
                   <geom type="mesh" class="visual" pos="-0.0125255 0.00118539 0.0254289" quat="0.499502 0.500498 0.499915 0.500085" mesh="foot_btm_front" material="foot_btm_front_material" />
                   <geom type="mesh" class="collision" pos="-0.0125255 0.00118539 0.0254289" quat="0.499502 0.500498 0.499915 0.500085" mesh="foot_btm_front" material="foot_btm_front_material" name="left_foot_btm_front" />
-                  <site group="3" name="left_foot_front" pos="-0.0338724 0.00125162 -0.0313534" quat="0.706814 0.00041245 0.707399 0.000412109" />
-                  <site group="3" name="left_foot_back" pos="-0.0337982 0.00114695 0.0584122" quat="0.706814 0.00041245 0.707399 0.000412109" />
+                  <site group="3" name="left_foot_site" pos="-0.0294391 -0.00926314 0.00899012" quat="0.500498 -0.499502 -0.500085 0.499915" />
                 </body>
               </body>
             </body>
@@ -160,8 +155,7 @@
                   <geom type="mesh" class="visual" pos="-0.0105255 -0.00118539 -0.0266273" quat="0.499915 0.500085 0.499502 0.500498" mesh="foot_btm_back" material="foot_btm_back_material" />
                   <geom type="mesh" class="collision" pos="-0.0105255 -0.00118539 -0.0266273" quat="0.499915 0.500085 0.499502 0.500498" mesh="foot_btm_back" material="foot_btm_back_material" name="right_foot_btm_back" />
                   <geom type="mesh" class="visual" pos="-0.0596436 0.0062757 -0.0522108" quat="1 0.00074741 -0.00041321 3.08837e-07" mesh="htd_45h_1circle" material="htd_45h_1circle_material" />
-                  <site group="3" name="right_foot_front" pos="-0.0337785 -0.00111915 -0.0834465" quat="0.707399 0.000412109 0.706814 0.00041245" />
-                  <site group="3" name="right_foot_back" pos="-0.0318526 -0.00122364 0.00615509" quat="0.707399 0.000412109 0.706814 0.00041245" />
+                  <site group="3" name="right_foot_site" pos="-0.0294117 0.00930168 -0.0432369" quat="0.500085 -0.499915 -0.500498 0.499502" />
                 </body>
               </body>
             </body>
@@ -171,34 +165,34 @@
     </body>
   </worldbody>
   <asset>
-    <mesh file="hip_servo_hook_left.stl" />
-    <mesh file="hip_servo_hook_right.stl" />
+    <mesh file="servo_bracket_btm.stl" />
+    <mesh file="up_leg.stl" />
+    <mesh file="hip_cover.stl" />
+    <mesh file="low_leg_left.stl" />
+    <mesh file="trunk_bottom.stl" />
+    <mesh file="low_leg_right.stl" />
     <mesh file="knee_ball_mid.stl" />
     <mesh file="scroll_out.stl" />
-    <mesh file="up_leg_servo_connect.stl" />
-    <mesh file="low_leg_right.stl" />
-    <mesh file="foot_main_right.stl" />
-    <mesh file="knee_ball_left.stl" />
-    <mesh file="hip_trunk_connect.stl" />
-    <mesh file="trunk_bottom.stl" />
-    <mesh file="hip_cover.stl" />
-    <mesh file="waist_platform.stl" />
-    <mesh file="btm_servo_support.stl" />
     <mesh file="foot_btm_back.stl" />
     <mesh file="foot_main.stl" />
+    <mesh file="batterybox.stl" />
+    <mesh file="trunk_servo_connect.stl" />
     <mesh file="foot_btm_front.stl" />
-    <mesh file="low_leg_left.stl" />
     <mesh file="foot_side_right.stl" />
+    <mesh file="hip_servo_hook_left.stl" />
     <mesh file="foot_side.stl" />
     <mesh file="waist_trunk_support.stl" />
-    <mesh file="batterybox.stl" />
-    <mesh file="knee_ball_right.stl" />
+    <mesh file="up_leg_servo_connect.stl" />
     <mesh file="htd_45h_1circle.stl" />
-    <mesh file="servo_bracket_btm.stl" />
-    <mesh file="trunk_servo_connect.stl" />
-    <mesh file="servo_bracket_top.stl" />
-    <mesh file="up_leg.stl" />
     <mesh file="waist_platform_2.stl" />
+    <mesh file="hip_trunk_connect.stl" />
+    <mesh file="knee_ball_left.stl" />
+    <mesh file="btm_servo_support.stl" />
+    <mesh file="hip_servo_hook_right.stl" />
+    <mesh file="foot_main_right.stl" />
+    <mesh file="knee_ball_right.stl" />
+    <mesh file="servo_bracket_top.stl" />
+    <mesh file="waist_platform.stl" />
     <material name="htd_45h_1circle_material" rgba="0.615686 0.811765 0.929412 1" />
     <material name="waist_trunk_support_material" rgba="0.980392 0.713725 0.00392157 1" />
     <material name="trunk_bottom_material" rgba="0.301961 0.301961 0.301961 1" />
