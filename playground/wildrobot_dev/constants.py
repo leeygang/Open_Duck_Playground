@@ -20,8 +20,8 @@ from dataclasses import dataclass
 from typing import List
 
 ROOT_PATH = epath.Path(__file__).parent
-FLAT_TERRAIN_XML = ROOT_PATH / "xmls" / "scene_flat_terrain.xml"
-ROUGH_TERRAIN_XML = ROOT_PATH / "xmls" / "scene_rough_terrain.xml"
+FLAT_TERRAIN_XML = ROOT_PATH / "xmls" / "robot_leg" / "scene_flat_terrain.xml"
+ROUGH_TERRAIN_XML = ROOT_PATH / "xmls" / "robot_leg" / "scene_rough_terrain.xml"
 DUCK_TERRAIN_XML = ROOT_PATH / "../open_duck_mini_v2" /"xmls" / "scene_flat_terrain.xml"
 
 tasks = ["wildrobot_terrain", "duck_terrain"]

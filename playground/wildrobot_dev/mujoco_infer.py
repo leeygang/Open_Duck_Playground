@@ -208,7 +208,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model_path",
         type=str,
-        default="xmls/scene_flat_terrain.xml",
+        default="playground/wildrobot_dev/xmls/robot_leg/scene_flat_terrain.xml",
     )
     parser.add_argument("--standing", action="store_true", default=True)
     parser.add_argument("--task", type=str, default="wildrobot_terrain", help="Task name matching ROBOT_CONFIGS key")

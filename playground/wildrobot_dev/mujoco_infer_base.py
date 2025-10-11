@@ -8,8 +8,11 @@ from playground.wildrobot_dev import constants as wr_constants
 class MJInferBase:
     def __init__(self, model_path, task: str):
 
+        # Resolve assets relative to the XML directory to support new layout under xmls/robot_leg
+        xml_path = epath.Path(model_path)
+        assets_root = xml_path.parent
         self.model = mujoco.MjModel.from_xml_string(
-            epath.Path(model_path).read_text(), assets=base.get_assets(".")
+            xml_path.read_text(), assets=base.get_assets(assets_root)
         )
         print(f"model xml path{model_path}")
 
