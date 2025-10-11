@@ -19,6 +19,7 @@ from playground.wildrobot_dev import standing
 import constants
 import os
 import playground.common.tb_logging as tb_logging
+from playground.common.export_onnx import export_onnx
 
 # os.environ['JAX_LOG_COMPILES'] = '1'  # Add at top of runner.py
 # from jax import config
@@ -135,62 +136,49 @@ class WildRobotRunner(BaseRunner):
 
         print(f"Observation size: {self.obs_size}")
 
-    # Also export/copy ONNX to the output folder (i.e., parent of 'checkpoints')
-    # in addition to the default export handled by BaseRunner.
+    # Also export ONNX directly to the output root (parent of 'checkpoints')
+    # instead of keeping a copy in the checkpoints directory.
     def policy_params_fn(self, current_step, make_policy, params):
-        # First, call the base implementation to save checkpoint and export ONNX under output_dir
+        # First, call the base implementation to save checkpoint but skip its ONNX export
         try:
+            orig_flag = getattr(self.args, "export_on_finish", False)
+            setattr(self.args, "export_on_finish", True)
             super().policy_params_fn(current_step, make_policy, params)
         except Exception as _e:
             print("[Runner Override] Base policy_params_fn failed:", _e)
+        finally:
+            try:
+                setattr(self.args, "export_on_finish", orig_flag)
+            except Exception:
+                pass
 
+        # Export ONNX directly to output root as <task>_<env>.onnx
         try:
-            # Locate the most recent ONNX exported by the base implementation
-            from pathlib import Path
-            import shutil
             out_dir = Path(self.output_dir)
-            if out_dir.exists():
-                # Find ONNX files matching the naming pattern in output_dir
-                onnx_files = sorted(out_dir.glob("*.onnx"), key=lambda p: p.stat().st_mtime, reverse=True)
-            else:
-                onnx_files = []
-            if not onnx_files:
-                return
-            latest_onnx = onnx_files[0]
-
-            # Determine output root (parent of 'checkpoints' if present)
             output_root = out_dir.parent if out_dir.name == "checkpoints" else out_dir
             output_root.mkdir(parents=True, exist_ok=True)
 
-            # Name ONNX as <task>_<env>.onnx (e.g., wildrobot_terrain_standing.onnx)
             task_name = getattr(self.args, "task", "task")
             env_name = getattr(self.args, "env", "env")
-            target_name = f"{task_name}_{env_name}.onnx"
-            target_path = output_root / target_name
+            target_path = output_root / f"{task_name}_{env_name}.onnx"
 
-            # If target exists, replace it to keep latest
+            # Best-effort remove existing file to avoid partial overwrite issues
             try:
                 if target_path.exists():
                     target_path.unlink()
             except Exception:
                 pass
 
-            # Move the ONNX out of checkpoints so we don't keep the original there
-            shutil.move(str(latest_onnx), str(target_path))
-            print(f"[Runner Override] Moved ONNX to {target_path}")
-
-            # Best-effort cleanup: remove any other stale .onnx in checkpoints
-            removed = 0
-            for p in out_dir.glob("*.onnx"):
-                try:
-                    p.unlink()
-                    removed += 1
-                except Exception:
-                    pass
-            if removed:
-                print(f"[Runner Override] Removed {removed} stale ONNX file(s) from {out_dir}")
+            export_onnx(
+                params,
+                self.action_size,
+                self.ppo_params,
+                self.obs_size,
+                output_path=str(target_path),
+            )
+            print(f"[Runner Override] Exported ONNX to {target_path}")
         except Exception as _e:
-            print("[Runner Override] Failed to move ONNX to output folder:", _e)
+            print("[Runner Override] Failed to export ONNX to output root:", _e)
 
 
 def main() -> None:
