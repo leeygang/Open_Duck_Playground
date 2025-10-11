@@ -280,7 +280,7 @@ class BaseRunner(ABC):
                     self.obs_size,
                     output_path=str(target_path),
                 )
-                logger.info("{GREEN} Checkpoint and ONNX export completed {RESET}")
+                logger.info(f"{GREEN} Checkpoint and ONNX export completed {RESET}")
             except Exception as e:
                 logger.warning(f"{YELLOW}ONNX export failed or was interrupted: {e}. Continuing training.{RESET}")
         else:
