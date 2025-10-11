@@ -1,8 +1,6 @@
 # Copilot Instructions for Open_Duck_Playground
 
-This file enables repo-wide guidance for AI assistants. It mirrors the conventions in `chat_prompt.md` so they are picked up automatically by tools that read `.github/copilot-instructions.md`.
-
-Source of truth: `chat_prompt.md` at repo root.
+This file defines repo-wide guidance for AI assistants and is the single source of truth for assistant behavior in this project.
 
 ---
 
@@ -14,7 +12,7 @@ Source of truth: `chat_prompt.md` at repo root.
 
 High-level rules (must follow)
 - ALWAYS show a unified diff or clear patch with file paths before applying anything.
-- NEVER run `git commit` or `git push` or any terminal commands that modify the repo automatically. Suggest exact commands instead.
+- NEVER run `git commit` or `git push` or any terminal commands that modify the repo automatically. Suggest exact commands instead (unless the user explicitly asks you to run them).
 - Provide a short one-line summary + 3–5 bullet rationale for any change.
 - Keep code snippets minimal and idiomatic.
 - Keep diffs minimal and focused; prefer concise, simple design.
