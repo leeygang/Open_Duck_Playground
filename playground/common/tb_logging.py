@@ -40,9 +40,9 @@ def set_writer(w: SummaryWriter):
         except Exception:
             _log_dir = None
     if _log_dir:
-        print(f"[tb_logging] ✅ TensorBoard logging active. Log dir: {_log_dir}")
+        print(f"[tb_logging] TensorBoard logging active. Log dir: {_log_dir}")
     else:
-        print("[tb_logging] ✅ TensorBoard logging active (injected writer)")
+        print("[tb_logging] TensorBoard logging active (injected writer)")
 
 def set_log_dir(dir_path: str):
     """Create a new SummaryWriter at the given directory and set it globally."""
