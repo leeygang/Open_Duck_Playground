@@ -5,13 +5,20 @@ and 'debug' (drastically reduced workload for fast iteration).
 Also prints JAX backend/devices to help diagnose long compile times or missing GPU.
 """
 
+# Redirect .pyc files to output/pycache for this runner only
+import os as _os  # placed before other imports to affect subsequent module imports
+_os.environ.setdefault("PYTHONPYCACHEPREFIX", _os.path.join("output", "__pycache__"))
+
 import argparse
+from pathlib import Path
+from torch.utils.tensorboard import SummaryWriter
 
 from playground.common import randomize
 from playground.common.runner import BaseRunner
 from playground.wildrobot_dev import standing
 import constants
 import os
+import playground.common.tb_logging as tb_logging
 
 # os.environ['JAX_LOG_COMPILES'] = '1'  # Add at top of runner.py
 # from jax import config
@@ -21,6 +28,26 @@ class WildRobotRunner(BaseRunner):
 
     def __init__(self, args):
         super().__init__(args)
+    # Redirect TensorBoard logs to output/runs while checkpoints stay in output/checkpoints
+        try:
+            out_path = Path(self.output_dir)
+            output_root = out_path.parent if out_path.name == "checkpoints" else out_path
+            runs_dir = output_root / "runs"
+            runs_dir.mkdir(parents=True, exist_ok=True)
+            # Close existing writer if present, then replace and inform tb_logging
+            try:
+                if hasattr(self, "writer") and self.writer is not None:
+                    self.writer.close()
+            except Exception:
+                pass
+            self.writer = SummaryWriter(log_dir=runs_dir)
+            try:
+                tb_logging.set_writer(self.writer)
+            except Exception:
+                pass
+            print(f"[Runner] TensorBoard logs -> {runs_dir}")
+        except Exception as _e:
+            print("[Runner] Failed to redirect TensorBoard logs:", _e)
         available_envs = {
             "joystick": (standing, standing.Standing),
             "standing": (standing, standing.Standing),
@@ -108,20 +135,52 @@ class WildRobotRunner(BaseRunner):
 
         print(f"Observation size: {self.obs_size}")
 
+    # Also export/copy ONNX to the output folder (i.e., parent of 'checkpoints')
+    # in addition to the default export handled by BaseRunner.
+    def policy_params_fn(self, current_step, make_policy, params):
+        # First, call the base implementation to save checkpoint and export ONNX under output_dir
+        try:
+            super().policy_params_fn(current_step, make_policy, params)
+        except Exception as _e:
+            print("[Runner Override] Base policy_params_fn failed:", _e)
+
+        try:
+            # Locate the most recent ONNX exported by the base implementation
+            from pathlib import Path
+            import shutil
+            out_dir = Path(self.output_dir)
+            if out_dir.exists():
+                # Find ONNX files matching the naming pattern in output_dir
+                onnx_files = sorted(out_dir.glob("*.onnx"), key=lambda p: p.stat().st_mtime, reverse=True)
+            else:
+                onnx_files = []
+            if not onnx_files:
+                return
+            latest_onnx = onnx_files[0]
+
+            # Determine output root (parent of 'checkpoints' if present)
+            output_root = out_dir.parent if out_dir.name == "checkpoints" else out_dir
+            output_root.mkdir(parents=True, exist_ok=True)
+
+            # Name ONNX as <task>_<env>.onnx (e.g., wildrobot_terrain_standing.onnx)
+            task_name = getattr(self.args, "task", "task")
+            env_name = getattr(self.args, "env", "env")
+            target_name = f"{task_name}_{env_name}.onnx"
+            target_path = output_root / target_name
+            shutil.copy2(latest_onnx, target_path)
+            print(f"[Runner Override] Copied ONNX to {target_path}")
+        except Exception as _e:
+            print("[Runner Override] Failed to copy ONNX to task folder:", _e)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Wild Robot Runner Script")
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        default="checkpoints",
-        help="Where to save the checkpoints",
-    )
+    # Output directory for wildrobot_dev is fixed to output/checkpoints
     # 120M steps for fast profile
     parser.add_argument("--num_timesteps", type=int, default=120000000)
     #parser.add_argument("--num_timesteps", type=int, default=150000000)
     parser.add_argument("--env", type=str, default="standing", help="env")
-    parser.add_argument("--task", type=str, default="wildrobot_terrain", help="Task to run")
+    parser.add_argument("--task", type=str, default="leg_terrain", help="Task to run")
     parser.add_argument(
         "--restore_checkpoint_path",
         type=str,
@@ -166,6 +225,13 @@ def main() -> None:
         ),
     )
     args = parser.parse_args()
+
+    # Force outputs under output/checkpoints for wildrobot_dev only
+    try:
+        args.output_dir = os.path.join("output", "checkpoints")
+    except Exception:
+        # Fallback if args is not writable
+        pass
 
     if args.cpu:
         # Set before JAX initializes
