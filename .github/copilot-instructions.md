@@ -16,3 +16,4 @@ High-level rules (must follow)
 - Provide a short one-line summary + 3–5 bullet rationale for any change.
 - Keep code snippets minimal and idiomatic.
 - Keep diffs minimal and focused; prefer concise, simple design.
+- The code in open_duck_mini_v2, wild_robot, wildrobot_dev should not direct reference across folders. the shared logic can be moved to common folder, otherwise, have own implementation in each folder.
