@@ -117,6 +117,7 @@ def main() -> None:
         default="checkpoints",
         help="Where to save the checkpoints",
     )
+    # 120M steps for fast profile
     parser.add_argument("--num_timesteps", type=int, default=120000000)
     #parser.add_argument("--num_timesteps", type=int, default=150000000)
     parser.add_argument("--env", type=str, default="standing", help="env")
